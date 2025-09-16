@@ -1,7 +1,48 @@
 const router = require("express").Router();
 const { PrismaClient } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
+const authMiddleware = require("../middlewares/authMiddleware");
 
 const prisma = new PrismaClient();
+
+// 今日の歩数をDBに保存するAPI
+router.post("/today", authMiddleware, async (req, res) => {
+  // jwtからuserIdを取得
+  const userId = req.userId;
+  // dateは "YYYY-MM-DD"で渡す
+  // DBには「その日の0時0分0秒」の日時として保存される
+  const { steps, date } = req.body;
+  const dateObj = new Date(date);
+
+  if (!userId || !steps || !dateObj) {
+    return res.status(400).json({ message: "必要なデータがありません" });
+  }
+
+  try {
+    // 既に同じ日付の歩数データがあるかを判定
+    const existing = await prisma.stepRecord.findFirst({
+      where: { userId, date: new Date(date) },
+    });
+
+    let result;
+    if (existing) {
+      // 歩数を上書き
+      result = await prisma.stepRecord.update({
+        where: { id: existing.id },
+        data: { steps },
+      });
+    } else {
+      // 新規作成
+      result = await prisma.stepRecord.create({
+        data: { userId, date: new Date(date), steps },
+      });
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "サーバーエラーです" });
+  }
+});
 
 module.exports = router;

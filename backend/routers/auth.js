@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 
 const prisma = new PrismaClient();
 
+//ユーザーの新規登録API
 router.post("/register", async (req, res) => {
   const { name, email, password, age } = req.body;
 
@@ -23,6 +24,7 @@ router.post("/register", async (req, res) => {
   return res.json({ user });
 });
 
+//ユーザーのログインAPI
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
