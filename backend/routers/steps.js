@@ -6,10 +6,10 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const prisma = new PrismaClient();
 
 // 昨日の歩数をDBに保存するAPI
+// フロント側ではreqに"昨日"の日付をYYYY-MM-DDの形で渡す
 router.post("/yesterday", authMiddleware, async (req, res) => {
   // jwtからuserIdを取得
   const userId = req.userId;
-  // dateは "YYYY-MM-DD"で渡し、DBには「その日の0時0分0秒」の日時として保存される
   const { steps, date } = req.body;
   const stepsNum = Number(steps);
   const dateObj = new Date(date);
@@ -40,6 +40,24 @@ router.post("/yesterday", authMiddleware, async (req, res) => {
     }
 
     return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "サーバーエラーです" });
+  }
+});
+
+// 今までの総歩数を渡すAPI
+router.get("/total_steps", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    return res.status(400).json({ message: "ユーザーIDがありません" });
+  }
+  try {
+    const total = await prisma.stepRecord.aggregate({
+      _sum: { steps: true },
+      where: { userId },
+    });
+    return res.status(200).json({ totalSteps: total._sum.steps || 0 });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "サーバーエラーです" });
