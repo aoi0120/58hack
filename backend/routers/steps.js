@@ -5,8 +5,8 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 const prisma = new PrismaClient();
 
-// 今日の歩数をDBに保存するAPI
-router.post("/today", authMiddleware, async (req, res) => {
+// 昨日の歩数をDBに保存するAPI
+router.post("/yesterday", authMiddleware, async (req, res) => {
   // jwtからuserIdを取得
   const userId = req.userId;
   // dateは "YYYY-MM-DD"で渡し、DBには「その日の0時0分0秒」の日時として保存される
