@@ -9,13 +9,16 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  name  String
-  email String  @unique
-  password String
-  age Int
-  level Int @default(1)
-  stepRecords StepRecord[]
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
+  password     String
+  name         String
+  age          Int
+  stepRecords  StepRecord[]
+  foundUsers   User[]   @relation("FoundUsers")
+  foundByUsers User[]   @relation("FoundUsers")
+  win_count    Int          @default(0)
+  lose_count   Int          @default(0)
 }
 
 model StepRecord {
@@ -24,4 +27,9 @@ model StepRecord {
   userId Int
   date DateTime
   steps Int
+}
+
+model URL {
+  id   String  @id @unique
+  url  String
 }
