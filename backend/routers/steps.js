@@ -21,7 +21,7 @@ router.post("/today", authMiddleware, async (req, res) => {
   try {
     // 既に同じ日付の歩数データがあるかを判定
     const existing = await prisma.stepRecord.findFirst({
-      where: { userId, date: new Date(date) },
+      where: { userId, date: dateObj },
     });
 
     let result;
@@ -34,7 +34,7 @@ router.post("/today", authMiddleware, async (req, res) => {
     } else {
       // 新規作成
       result = await prisma.stepRecord.create({
-        data: { userId, date: new Date(date), steps },
+        data: { userId, date: dateObj, steps },
       });
     }
 
