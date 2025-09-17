@@ -9,13 +9,14 @@ const prisma = new PrismaClient();
 router.post("/today", authMiddleware, async (req, res) => {
   // jwtからuserIdを取得
   const userId = req.userId;
-  // dateは "YYYY-MM-DD"で渡す
-  // DBには「その日の0時0分0秒」の日時として保存される
+  // dateは "YYYY-MM-DD"で渡し、DBには「その日の0時0分0秒」の日時として保存される
   const { steps, date } = req.body;
+  const stepsNum = Number(steps);
   const dateObj = new Date(date);
+  const isInvalidDate = Number.isNaN(dateObj.getTime());
 
-  if (!userId || !steps || !dateObj) {
-    return res.status(400).json({ message: "必要なデータがありません" });
+  if (!userId || !stepsNum || !dateObj || isInvalidDate) {
+    return res.status(400).json({ message: "不正な入力です" });
   }
 
   try {
@@ -29,12 +30,12 @@ router.post("/today", authMiddleware, async (req, res) => {
       // 歩数を上書き
       result = await prisma.stepRecord.update({
         where: { id: existing.id },
-        data: { steps },
+        data: { steps: stepsNum },
       });
     } else {
-      // 新規作成
+      // 歩数を新規作成
       result = await prisma.stepRecord.create({
-        data: { userId, date: dateObj, steps },
+        data: { userId, date: dateObj, steps: stepsNum },
       });
     }
 
