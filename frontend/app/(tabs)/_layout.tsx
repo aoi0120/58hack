@@ -11,6 +11,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "ホーム",
+           headerShown: false,
           tabBarIcon: ({ size, color }) => <HomeIcon size={size} color={color} />,
         }}
       />
@@ -18,6 +19,7 @@ export default function TabLayout() {
         name="battle"
         options={{
           title: "バトル",
+           headerShown: false,
            tabBarIcon: ({ size, color }) => <BattleIcon size={size} color={color} />,
         }}
       />
@@ -25,6 +27,7 @@ export default function TabLayout() {
         name="ranking"
         options={{
           title: "ランキング",
+           headerShown: false,
           tabBarIcon: ({ size, color }) => <RankingIcon size={size} color={color} />,
         }}
       />
