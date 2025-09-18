@@ -4,6 +4,7 @@ const cors = require("cors");
 const authRoute = require("./routers/auth");
 const stepsRoute = require("./routers/steps");
 const userRoute = require("./routers/user");
+const rankingRoute = require("./routers/ranking");
 
 require("dotenv").config();
 
@@ -15,5 +16,6 @@ app.use(express.json());
 app.use("/api/auth", authRoute);
 app.use("/api/steps", stepsRoute);
 app.use("/api/user", userRoute);
+app.use("/api/ranking", rankingRoute);
 
 app.listen(PORT, () => console.log(`server is running on PORT ${PORT}`));
