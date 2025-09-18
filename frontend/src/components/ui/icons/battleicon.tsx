@@ -1,4 +1,3 @@
-// src/components/icons/BattleIcon.tsx
 import Svg, { Path } from "react-native-svg";
 
 type Props = { size?: number; color?: string };
