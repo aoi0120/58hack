@@ -7,7 +7,7 @@ export default function Index() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            const isLoggedIn = true;
+            const isLoggedIn = false;
             if (isLoggedIn) {
                 router.replace("/(tabs)");
             } else {

@@ -1,9 +1,7 @@
-import { View, Text } from "react-native";
+import { LoginForm } from "@/src/features/auth/components/LoginForm";
 
 export default function Login() {
     return (
-        <View>
-            <Text>Login</Text>
-        </View>
+        <LoginForm />
     );
 }
