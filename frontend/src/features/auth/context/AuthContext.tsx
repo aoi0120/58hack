@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         (async () => {
             try {
                 setLoading(true);
-                const token = SecureStore.getItem('token');
+                const token = await SecureStore.getItemAsync('token');
                 if (token) {
                     try {
                         const payload = JSON.parse(atob(token.split('.')[1]));

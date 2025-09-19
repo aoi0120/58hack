@@ -4,7 +4,7 @@ import axios, { InternalAxiosRequestConfig } from "axios";
 export const api = axios.create({ baseURL: process.env.EXPO_PUBLIC_API_URL });
 
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-    const token = SecureStore.getItem('token');
+    const token = await SecureStore.getItemAsync('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
@@ -19,30 +19,28 @@ api.interceptors.response.use(
         }
 
         if (error.response.status === 401) {
-            const refreshToken = SecureStore.getItem('refreshToken');
+            const refreshToken = await SecureStore.getItemAsync('refreshToken');
             if (!refreshToken) {
                 await SecureStore.deleteItemAsync('token');
                 throw error;
             }
 
-            if (!refreshing) {
-                refreshing = (async () => {
-                    try {
-                        const currentToken = SecureStore.getItem('token');
-                        if (currentToken) {
-                            return currentToken;
-                        }
-                        return null;
-                    } catch (refreshError) {
-                        console.error('トークンリフレッシュエラー:', refreshError);
-                        await SecureStore.deleteItemAsync('token');
-                        await SecureStore.deleteItemAsync('refreshToken');
-                        return null;
-                    } finally {
-                        refreshing = null;
+            refreshing ??= (async () => {
+                try {
+                    const currentToken = await SecureStore.getItemAsync('token');
+                    if (currentToken) {
+                        return currentToken;
                     }
-                })();
-            }
+                    return null;
+                } catch (refreshError) {
+                    console.error('トークンリフレッシュエラー:', refreshError);
+                    await SecureStore.deleteItemAsync('token');
+                    await SecureStore.deleteItemAsync('refreshToken');
+                    return null;
+                } finally {
+                    refreshing = null;
+                }
+            })();
 
             const newToken = await refreshing;
             if (!newToken) {
