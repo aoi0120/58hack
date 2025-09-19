@@ -1,11 +1,11 @@
-import { View, Text } from "react-native";
-
-
+import { RegisterForm } from "@/src/features/auth/components/RegisterForm"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function Register() {
     return (
-        <View>
-            <Text>Register</Text>
-        </View>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#1C2024' }}>
+            <RegisterForm />
+        </SafeAreaView >
     );
+
 }

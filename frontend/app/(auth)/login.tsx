@@ -1,9 +1,10 @@
-import { View, Text } from "react-native";
+import { LoginForm } from "@/src/features/auth/components/LoginForm";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Login() {
     return (
-        <View>
-            <Text>Login</Text>
-        </View>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#1C2024' }}>
+            <LoginForm />
+        </SafeAreaView>
     );
 }
