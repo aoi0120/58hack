@@ -1,10 +1,36 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
-import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  TextInput,
+  Platform,
+  KeyboardAvoidingView,
+  Keyboard,
+} from 'react-native';
+import { useState, useEffect } from 'react';
 
 export default function Avatar() {
   const [name, setName] = useState('そこら辺のマッチョ');
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(name);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const handleEdit = () => {
     setTempName(name);
@@ -14,11 +40,16 @@ export default function Avatar() {
   const handleSave = () => {
     setName(tempName);
     setIsEditing(false);
-    // TODO: 保存処理（AsyncStorageやAPIなど）をここに追加可能
+    // TODO: 保存処理（AsyncStorageやAPIなど）
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      {isEditing && <View style={styles.overlay} />}
+
       <Image
         source={{
           uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBHOBhlQucrIRXOnEl3ZB8e5-vi69gz7l5wfKxxx2NWujGBlKL5OYo6hhj8xQxsbjxV5QPanK4HV2dm0GvMq1t9vyLbXEiO1PIZaKrma-yVXjYhXtFFLmHggyPgicQGP38j-MYyth-zd4BM1gFNc33b8LO3UnIcwq6VA75zU6G1Kw0bJLr9Hzb5oHzzR6bRx2CJYjSaz-92ok_u0SrYAwImputsay9GyQI1wgOt6NY2kkNk0NVd1NL1CNe34nVhO_IELkAaX7WXkY8',
@@ -27,27 +58,43 @@ export default function Avatar() {
         resizeMode="contain"
       />
       <View style={styles.nameRow}>
-        {isEditing ? (
+        <Text style={styles.name}>{name}</Text>
+        <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+          <Text style={styles.editIcon}>✎</Text>
+        </TouchableOpacity>
+      </View>
+
+      {isEditing && (
+        <View style={[styles.inputWrapper, { bottom: keyboardHeight }]}>
           <TextInput
             value={tempName}
             onChangeText={setTempName}
-            style={[styles.name, { color: '#FFD900' }]}
+            style={styles.input}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={handleSave}
           />
-        ) : (
-          <Text style={styles.name}>{name}</Text>
-        )}
-        <TouchableOpacity style={styles.editButton} onPress={isEditing ? handleSave : handleEdit}>
-          <Text style={styles.editIcon}>{isEditing ? '✔' : '✎'}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        </View>
+      )}
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'flex-start',
+    paddingTop: 48,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    zIndex: 5,
   },
   image: {
     width: 300,
@@ -94,5 +141,27 @@ const styles = StyleSheet.create({
   editIcon: {
     color: '#fff',
     fontSize: 16,
+  },
+  inputWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  input: {
+    backgroundColor: '#3C4A5A',
+    color: '#FFD900',
+    fontSize: 18,
+    fontWeight: 'bold',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#FFD900',
+    shadowColor: '#FFD900',
+    shadowOffset: { width: 0, height: 4 },
+    width: '100%',
+    textAlign: 'center',
   },
 });
