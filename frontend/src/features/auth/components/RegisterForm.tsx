@@ -13,12 +13,50 @@ export function RegisterForm() {
     const [error, setError] = useState<string | null>(null);
     const { register } = useAuth();
 
+    const validateForm = () => {
+        if (!email.trim()) {
+            setError('メールアドレスを入力してください。');
+            return false;
+        }
+        if (!password.trim()) {
+            setError('パスワードを入力してください。');
+            return false;
+        }
+        if (password.length < 6) {
+            setError('パスワードは6文字以上で入力してください。');
+            return false;
+        }
+        if (password !== confirmPassword) {
+            setError('パスワードが一致しません。');
+            return false;
+        }
+        if (!name.trim()) {
+            setError('名前を入力してください。');
+            return false;
+        }
+        if (!age.trim()) {
+            setError('年齢を入力してください。');
+            return false;
+        }
+        if (isNaN(Number(age)) || Number(age) < 1 || Number(age) > 120) {
+            setError('年齢を数字で入力してください。');
+            return false;
+        }
+        return true;
+    };
+
     const onSubmit = async () => {
         setSubmitted(true);
         setError(null);
 
+        if (!validateForm()) {
+            setSubmitted(false);
+            return;
+        }
+
         try {
             await register(email.trim(), password.trim(), name.trim(), age.trim());
+            router.replace('/(tabs)');
         } catch {
             setError('入力されている情報が正しくありません。');
         } finally {
@@ -35,6 +73,10 @@ export function RegisterForm() {
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
             />
             <Text style={styles.label}>パスワード</Text>
             <TextInput
@@ -42,6 +84,10 @@ export function RegisterForm() {
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
+                secureTextEntry={true}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
             />
             <Text style={styles.label}>パスワード確認</Text>
             <TextInput
@@ -49,6 +95,10 @@ export function RegisterForm() {
                 style={styles.input}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
+                secureTextEntry={true}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
             />
             <Text style={styles.label}>名前</Text>
             <TextInput
@@ -63,6 +113,8 @@ export function RegisterForm() {
                 style={styles.input}
                 value={age}
                 onChangeText={setAge}
+                keyboardType="numeric"
+                textContentType="none"
             />
             {error && <Text style={styles.error}>{error}</Text>}
             <TouchableOpacity

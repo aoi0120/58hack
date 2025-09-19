@@ -14,9 +14,15 @@ export function LoginForm() {
         setSubmitted(true);
         setError(null);
 
+        if (!email.trim() || !password.trim()) {
+            setError('メールアドレスとパスワードを入力してください。');
+            setSubmitted(false);
+            return;
+        }
+
         try {
             // await login(email.trim(), password.trim());
-            router.push('/(tabs)/');
+            router.replace('/(tabs)');
         } catch {
             setError('メールアドレスまたはパスワードが間違っています。');
         } finally {
@@ -33,6 +39,10 @@ export function LoginForm() {
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
             />
             <Text style={styles.label}>パスワード</Text>
             <TextInput
@@ -40,6 +50,10 @@ export function LoginForm() {
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
+                secureTextEntry={true}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
             />
 
             {error && <Text style={styles.error}>{error}</Text>}
