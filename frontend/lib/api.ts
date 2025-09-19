@@ -40,3 +40,20 @@ api.interceptors.response.use(
         return api(error.config);
     }
 );
+
+export const sendYesterdaySteps = async (steps: number) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateString = yesterday.toISOString().split('T')[0];
+
+    try {
+        const response = await api.post('/steps/yesterday', {
+            steps,
+            date: dateString
+        });
+        return response.data;
+    } catch (error) {
+        console.error('昨日の歩数データ送信エラー:', error);
+        throw error;
+    }
+};
