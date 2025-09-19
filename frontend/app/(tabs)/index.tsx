@@ -1,20 +1,5 @@
-import { ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import Step from '../../src/features/home/components/Step';
-import Level from '../../src/features/home/components/Level';
-import Calorie from '../../src/features/home/components/Calorie';
-import Avatar from '../../src/features/home/components/Avatar';
+import { HomePage } from "@/src/features/home/pages/homepage";
 
 export default function HomeScreen() {
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#1C2024' }}>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <Level />
-        <Step />
-        <Calorie />
-        <Avatar />
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <HomePage />;
 }
