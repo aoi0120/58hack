@@ -60,8 +60,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
 
             const token = data.token;
-            if (token) {
+            const refreshToken = data.refreshToken;
+            if (token && refreshToken) {
                 await SecureStore.setItemAsync('token', token);
+                await SecureStore.setItemAsync('refreshToken', refreshToken);
                 api.defaults.headers.common.Authorization = `Bearer ${token}`;
                 setUser(data.user);
             }
@@ -79,11 +81,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const { data } = await api.post("/auth/login", { email, password });
 
             await SecureStore.setItemAsync('token', data.token);
+            await SecureStore.setItemAsync('refreshToken', data.refreshToken);
 
             api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
 
-            const { data: userData } = await api.get('/auth/me');
-            setUser(userData.user);
+            setUser(data.user);
         } catch (error) {
             console.error('ユーザーのログインに失敗しました。', error);
             throw error;
@@ -95,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const logout = useCallback(async () => {
         setUser(null);
         await SecureStore.deleteItemAsync('token');
+        await SecureStore.deleteItemAsync('refreshToken');
         delete api.defaults.headers.common.Authorization;
     }, []);
 

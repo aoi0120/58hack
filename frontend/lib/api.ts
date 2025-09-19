@@ -27,13 +27,21 @@ api.interceptors.response.use(
 
             refreshing ??= (async () => {
                 try {
-                    const currentToken = await SecureStore.getItemAsync('token');
-                    if (currentToken) {
-                        return currentToken;
+                    // リフレッシュトークンを使って新しいアクセストークンを取得
+                    const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/auth/refresh`, {
+                        refreshToken: refreshToken
+                    });
+
+                    const newAccessToken = response.data.token;
+                    if (newAccessToken) {
+                        // 新しいトークンを保存
+                        await SecureStore.setItemAsync('token', newAccessToken);
+                        return newAccessToken;
                     }
                     return null;
                 } catch (refreshError) {
                     console.error('トークンリフレッシュエラー:', refreshError);
+                    // リフレッシュに失敗した場合、両方のトークンを削除
                     await SecureStore.deleteItemAsync('token');
                     await SecureStore.deleteItemAsync('refreshToken');
                     return null;
