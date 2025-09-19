@@ -1,22 +1,25 @@
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
 import { useState } from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { router } from "expo-router";
 
-export function LoginForm() {
+export function RegisterForm() {
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [confirmPassword, setConfirmPassword] = useState<string>('');
+    const [name, setName] = useState<string>('');
+    const [age, setAge] = useState<string>('');
     const [submitted, setSubmitted] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    // const { login } = useAuth();
+    // const { register } = useAuth();
 
     const onSubmit = async () => {
         setSubmitted(true);
         setError(null);
 
         try {
-            // await login(email.trim(), password.trim());
+            // await register(email.trim(), password.trim(), name.trim(), age.trim());
         } catch (error: any) {
-            setError('メールアドレスまたはパスワードが間違っています。');
+            setError('入力されている情報が正しくありません。');
         } finally {
             setSubmitted(false);
         }
@@ -24,7 +27,7 @@ export function LoginForm() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>ログイン</Text>
+            <Text style={styles.title}>新規登録</Text>
             <Text style={styles.label}>メールアドレス</Text>
             <TextInput
                 placeholder="メールアドレス"
@@ -39,34 +42,47 @@ export function LoginForm() {
                 value={password}
                 onChangeText={setPassword}
             />
-
-            {error && <Text style={styles.error}>{error}</Text>}
-
+            <Text style={styles.label}>パスワード確認</Text>
+            <TextInput
+                placeholder="パスワード確認"
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+            />
+            <Text style={styles.label}>名前</Text>
+            <TextInput
+                placeholder="名前"
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+            />
+            <Text style={styles.label}>年齢</Text>
+            <TextInput
+                placeholder="年齢"
+                style={styles.input}
+                value={age}
+                onChangeText={setAge}
+            />
             <TouchableOpacity
                 onPress={onSubmit}
                 style={styles.button}
-                disabled={submitted}
             >
-                <Text style={styles.buttonText}>{submitted ? 'ログイン中...' : 'ログイン'}</Text>
+                <Text style={styles.buttonText}>新規登録</Text>
             </TouchableOpacity>
             <TouchableOpacity
-                onPress={() => router.push('/register')}
-                style={styles.buttonRegister}
+                onPress={() => router.push('/login')}
             >
-                <Text style={styles.buttonRegister}>新規登録はこちら</Text>
+                <Text style={styles.buttonRegister}>ログインはこちら</Text>
             </TouchableOpacity>
-        </View>
+        </View >
     );
 }
-
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#1C2024',
         padding: 16,
-        justifyContent: 'center',
-
     },
     title: {
         fontSize: 36,
@@ -74,6 +90,7 @@ const styles = StyleSheet.create({
         color: '#FFD900',
         marginBottom: 16,
         textAlign: 'center',
+        marginTop: 16,
     },
     label: {
         fontSize: 14,
@@ -97,6 +114,7 @@ const styles = StyleSheet.create({
         shadowRadius: 0,
     },
     button: {
+        marginTop: 16,
         backgroundColor: '#3E8DFF',
         padding: 12,
         borderRadius: 8,
@@ -106,10 +124,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 4, height: 4 },
         shadowOpacity: 1,
         shadowRadius: 0,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 16,
-        height: 60,
     },
     buttonText: {
         color: 'white',
@@ -122,13 +136,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginTop: 16,
-    },
-    error: {
-        color: 'red',
-        fontSize: 16,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginTop: 16,
+        marginTop: 20,
     },
 });
