@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Opponent } from "../types";
 
 const PLATE = "#2B3545";
-const SHADOW = "#11161d";
+
 const YELLOW = "#F8D94E";
 const RED = "#F45C4A";
 
@@ -32,16 +32,19 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: PLATE,
     borderRadius: 16,
+    borderWidth: 4,
+    borderColor: '#000',
     padding: 16,
     marginTop: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    shadowColor: SHADOW,
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: '#000',
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    shadowOffset: { width: 4, height: 4 },
     elevation: 5,
+    marginBottom: 16,
   },
   cardTitle: { color: "#E6EDF7", fontSize: 16, marginBottom: 6 },
   cardLabel: { color: "#AAB7C8", fontSize: 14, marginRight: 6 },
