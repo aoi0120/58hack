@@ -30,9 +30,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setLoading(true);
                 const token = SecureStore.getItem('token');
                 if (token) {
-                    const { data } = await api.get("");
-
-                    setUser(data);
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        setUser({
+                            id: payload.id,
+                            email: payload.email || '',
+                            name: payload.name || '',
+                            age: payload.age || 0
+                        });
+                    } catch (decodeError) {
+                        console.error('トークンのデコードに失敗しました:', decodeError);
+                        await SecureStore.deleteItemAsync('token');
+                    }
                 }
             } catch (error) {
                 console.error('ユーザー情報の取得に失敗しました。', error);
@@ -45,10 +54,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const register = useCallback(async (email: string, password: string, name: string, age: string) => {
         try {
             setLoading(true);
-            const { data } = await api.post("", { email, password, name, age });
-            setUser(data);
+            const { data } = await api.post("/auth/register", { email, password, name, age });
+            setUser(data.user);
         } catch (error) {
             console.error('ユーザーの新規登録に失敗しました。', error);
+            throw error;
         } finally {
             setLoading(false);
         }
@@ -57,18 +67,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const login = useCallback(async (email: string, password: string) => {
         try {
             setLoading(true);
-            const { data } = await api.post("", { email, password });
-            setUser(data);
+            const { data } = await api.post("/auth/login", { email, password });
+
+            await SecureStore.setItemAsync('token', data.token);
+
+            const payload = JSON.parse(atob(data.token.split('.')[1]));
+            setUser({
+                id: payload.id,
+                email: email,
+                name: payload.name || '',
+                age: payload.age || 0
+            });
         } catch (error) {
             console.error('ユーザーのログインに失敗しました。', error);
+            throw error;
         } finally {
             setLoading(false);
         }
     }, []);
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
         setUser(null);
-        SecureStore.deleteItemAsync('token');
+        await SecureStore.deleteItemAsync('token');
     }, []);
 
     const value = useMemo(
