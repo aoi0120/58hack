@@ -122,10 +122,8 @@ router.post("/refresh", async (req, res) => {
             return res.status(400).json({ error: "リフレッシュトークンが必要です" });
         }
 
-        // リフレッシュトークンを検証
         const decoded = jwt.verify(refreshToken, process.env.SECRET_KEY);
 
-        // ユーザーが存在するか確認
         const user = await prisma.user.findUnique({
             where: { id: decoded.id },
             select: {
@@ -140,7 +138,6 @@ router.post("/refresh", async (req, res) => {
             return res.status(401).json({ error: "ユーザーが見つかりません" });
         }
 
-        // 新しいアクセストークンを生成
         const newToken = jwt.sign(
             {
                 id: user.id,
