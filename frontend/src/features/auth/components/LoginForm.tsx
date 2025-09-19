@@ -1,21 +1,22 @@
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export function LoginForm() {
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [submitted, setSubmitted] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    // const { login } = useAuth();
+    const { login } = useAuth();
 
     const onSubmit = async () => {
         setSubmitted(true);
         setError(null);
 
         try {
-            // await login(email.trim(), password.trim());
-        } catch (error: any) {
+            await login(email.trim(), password.trim());
+        } catch {
             setError('メールアドレスまたはパスワードが間違っています。');
         } finally {
             setSubmitted(false);

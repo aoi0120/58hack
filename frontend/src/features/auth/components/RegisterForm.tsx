@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
+import { useAuth } from "../context/AuthContext";
 
 export function RegisterForm() {
     const [email, setEmail] = useState<string>('');
@@ -10,15 +11,15 @@ export function RegisterForm() {
     const [age, setAge] = useState<string>('');
     const [submitted, setSubmitted] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    // const { register } = useAuth();
+    const { register } = useAuth();
 
     const onSubmit = async () => {
         setSubmitted(true);
         setError(null);
 
         try {
-            // await register(email.trim(), password.trim(), name.trim(), age.trim());
-        } catch (error: any) {
+            await register(email.trim(), password.trim(), name.trim(), age.trim());
+        } catch {
             setError('入力されている情報が正しくありません。');
         } finally {
             setSubmitted(false);
