@@ -30,21 +30,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setLoading(true);
                 const token = await SecureStore.getItemAsync('token');
                 if (token) {
+                    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+
                     try {
-                        const payload = JSON.parse(atob(token.split('.')[1]));
-                        setUser({
-                            id: payload.id,
-                            email: payload.email || '',
-                            name: payload.name || '',
-                            age: payload.age || 0
-                        });
-                    } catch (decodeError) {
-                        console.error('トークンのデコードに失敗しました:', decodeError);
+                        const { data } = await api.get('/auth/me');
+                        setUser(data.user);
+                    } catch (apiError) {
+                        console.error('ユーザー情報の取得に失敗しました:', apiError);
                         await SecureStore.deleteItemAsync('token');
+                        delete api.defaults.headers.common.Authorization;
                     }
                 }
             } catch (error) {
-                console.error('ユーザー情報の取得に失敗しました。', error);
+                console.error('認証チェックに失敗しました:', error);
             } finally {
                 setLoading(false);
             }
@@ -54,8 +52,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const register = useCallback(async (email: string, password: string, name: string, age: string) => {
         try {
             setLoading(true);
-            const { data } = await api.post("/auth/register", { email, password, name, age });
-            setUser(data.user);
+            const { data } = await api.post("/auth/register", {
+                email,
+                password,
+                name,
+                age: parseInt(age, 10)
+            });
+
+            const token = data.token;
+            if (token) {
+                await SecureStore.setItemAsync('token', token);
+                api.defaults.headers.common.Authorization = `Bearer ${token}`;
+                setUser(data.user);
+            }
         } catch (error) {
             console.error('ユーザーの新規登録に失敗しました。', error);
             throw error;
@@ -71,13 +80,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             await SecureStore.setItemAsync('token', data.token);
 
-            const payload = JSON.parse(atob(data.token.split('.')[1]));
-            setUser({
-                id: payload.id,
-                email: email,
-                name: payload.name || '',
-                age: payload.age || 0
-            });
+            api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+
+            const { data: userData } = await api.get('/auth/me');
+            setUser(userData.user);
         } catch (error) {
             console.error('ユーザーのログインに失敗しました。', error);
             throw error;
@@ -89,6 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const logout = useCallback(async () => {
         setUser(null);
         await SecureStore.deleteItemAsync('token');
+        delete api.defaults.headers.common.Authorization;
     }, []);
 
     const value = useMemo(
