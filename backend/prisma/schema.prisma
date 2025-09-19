@@ -29,11 +29,6 @@ model StepRecord {
   steps Int
 }
 
-model URL {
-  id   String  @id @unique
-  url  String
-}
-
 model BattleRecord {
   id        Int    @id @default(autoincrement())
   date      DateTime
