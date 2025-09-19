@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 
 const PLATE = "#2B3545";
-const SHADOW = "#11161d";
 const YELLOW = "#F8D94E";
 
 type Props = {
@@ -27,11 +26,13 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 16,
     marginBottom: 20,
-    shadowColor: SHADOW,
-    shadowOpacity: 0.7,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#000',
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    shadowOffset: { width: 5, height: 5 },
     elevation: 6,
+    borderWidth: 5,     
+    borderColor: "black",
   },
   caption: {
     color: "#C9D1E0",
