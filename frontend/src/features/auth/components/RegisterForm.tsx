@@ -63,11 +63,13 @@ export function RegisterForm() {
                 value={age}
                 onChangeText={setAge}
             />
+            {error && <Text style={styles.error}>{error}</Text>}
             <TouchableOpacity
                 onPress={onSubmit}
                 style={styles.button}
+                disabled={submitted}
             >
-                <Text style={styles.buttonText}>新規登録</Text>
+                <Text style={styles.buttonText}>{submitted ? '登録中...' : '新規登録'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => router.push('/login')}
@@ -137,5 +139,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginTop: 20,
+    },
+    error: {
+        color: 'red',
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginTop: 16,
     },
 });
