@@ -15,7 +15,7 @@ const AuthContext = createContext<Auth | null>(null);
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
-        throw new Error('合うコンテキストが見つかりません。');
+        throw new Error('認証コンテキストが見つかりません。');
     }
     return context;
 }

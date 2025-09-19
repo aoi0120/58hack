@@ -12,8 +12,6 @@ export function StepsPanel() {
     const [syncError, setSyncError] = useState<string | null>(null);
 
     const syncYesterdaySteps = useCallback(async () => {
-        if (yesterdaySteps === 0) return;
-
         try {
             setSyncing(true);
             setSyncError(null);
@@ -28,7 +26,7 @@ export function StepsPanel() {
     }, [yesterdaySteps]);
 
     useEffect(() => {
-        if (yesterdaySteps > 0 && !loading) {
+        if (!loading) {
             syncYesterdaySteps();
         }
     }, [yesterdaySteps, loading, syncYesterdaySteps]);

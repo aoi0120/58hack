@@ -9,6 +9,40 @@ import {
 } from 'react-native-health-connect';
 import { Pedometer } from 'expo-sensors';
 
+interface StepsRecord {
+    count: number;
+    startTime: string;
+    endTime: string;
+}
+
+interface CaloriesRecord {
+    energy: {
+        inKilocalories: number;
+    };
+    startTime: string;
+    endTime: string;
+}
+
+interface DistanceRecord {
+    distance: {
+        inMeters: number;
+    };
+    startTime: string;
+    endTime: string;
+}
+
+interface HealthConnectResponse<T> {
+    records: T[];
+}
+
+interface PedometerResult {
+    steps: number;
+}
+
+interface PedometerPermissions {
+    granted: boolean;
+}
+
 export interface HealthData {
     steps: number;
     calories: number;
@@ -63,7 +97,7 @@ const readYesterdayAndroidData = async () => {
             startTime,
             endTime,
         },
-    });
+    }) as unknown as HealthConnectResponse<StepsRecord>;
 
     const caloriesData = await readRecords('ActiveCaloriesBurned', {
         timeRangeFilter: {
@@ -71,7 +105,7 @@ const readYesterdayAndroidData = async () => {
             startTime,
             endTime,
         },
-    });
+    }) as unknown as HealthConnectResponse<CaloriesRecord>;
 
     const distanceData = await readRecords('Distance', {
         timeRangeFilter: {
@@ -79,18 +113,18 @@ const readYesterdayAndroidData = async () => {
             startTime,
             endTime,
         },
-    });
+    }) as unknown as HealthConnectResponse<DistanceRecord>;
 
-    const steps = Math.round(stepsData.records.reduce((sum: number, record: any) => sum + record.count, 0));
-    const calories = Math.round(caloriesData.records.reduce((sum: number, record: any) => sum + record.energy.kilocalories, 0));
-    const distance = Math.round(distanceData.records.reduce((sum: number, record: any) => sum + record.distance.meters, 0));
+    const steps = Math.round(stepsData.records.reduce((sum: number, record: StepsRecord) => sum + record.count, 0));
+    const calories = Math.round(caloriesData.records.reduce((sum: number, record: CaloriesRecord) => sum + record.energy.inKilocalories, 0));
+    const distance = Math.round(distanceData.records.reduce((sum: number, record: DistanceRecord) => sum + record.distance.inMeters, 0));
 
     return { steps, calories, distance };
 };
 
 const readYesterdayIOSData = async () => {
-    if ((Pedometer as any).requestPermissionsAsync) {
-        const { granted } = await (Pedometer as any).requestPermissionsAsync();
+    if ('requestPermissionsAsync' in Pedometer) {
+        const { granted } = await (Pedometer as typeof Pedometer & { requestPermissionsAsync: () => Promise<PedometerPermissions> }).requestPermissionsAsync();
         if (!granted) throw new Error('モーションとフィットネスの権限が未許可です');
     }
     const { start, end } = getYesterdayRange();
@@ -98,7 +132,7 @@ const readYesterdayIOSData = async () => {
     const available = await Pedometer.isAvailableAsync();
     if (!available) throw new Error('歩数計が利用できません');
 
-    const result = await Pedometer.getStepCountAsync(start, end);
+    const result = await Pedometer.getStepCountAsync(start, end) as PedometerResult | null;
     const steps = result?.steps ?? 0;
 
     return {
@@ -139,7 +173,7 @@ export const useHealthData = () => {
                 startTime,
                 endTime,
             },
-        });
+        }) as unknown as HealthConnectResponse<StepsRecord>;
 
         const caloriesData = await readRecords('ActiveCaloriesBurned', {
             timeRangeFilter: {
@@ -147,7 +181,7 @@ export const useHealthData = () => {
                 startTime,
                 endTime,
             },
-        });
+        }) as unknown as HealthConnectResponse<CaloriesRecord>;
 
         const distanceData = await readRecords('Distance', {
             timeRangeFilter: {
@@ -155,18 +189,18 @@ export const useHealthData = () => {
                 startTime,
                 endTime,
             },
-        });
+        }) as unknown as HealthConnectResponse<DistanceRecord>;
 
-        const steps = Math.round(stepsData.records.reduce((sum: number, record: any) => sum + record.count, 0));
-        const calories = Math.round(caloriesData.records.reduce((sum: number, record: any) => sum + record.energy.kilocalories, 0));
-        const distance = Math.round(distanceData.records.reduce((sum: number, record: any) => sum + record.distance.meters, 0));
+        const steps = Math.round(stepsData.records.reduce((sum: number, record: StepsRecord) => sum + record.count, 0));
+        const calories = Math.round(caloriesData.records.reduce((sum: number, record: CaloriesRecord) => sum + record.energy.inKilocalories, 0));
+        const distance = Math.round(distanceData.records.reduce((sum: number, record: DistanceRecord) => sum + record.distance.inMeters, 0));
 
         return { steps, calories, distance };
     }, []);
 
     const readIOS = useCallback(async () => {
-        if ((Pedometer as any).requestPermissionsAsync) {
-            const { granted } = await (Pedometer as any).requestPermissionsAsync();
+        if ('requestPermissionsAsync' in Pedometer) {
+            const { granted } = await (Pedometer as typeof Pedometer & { requestPermissionsAsync: () => Promise<PedometerPermissions> }).requestPermissionsAsync();
             if (!granted) throw new Error('モーションとフィットネスの権限が未許可です（NSMotionUsageDescription が必要）');
         }
         const { start, end } = getTodayRange();
@@ -174,7 +208,7 @@ export const useHealthData = () => {
         const available = await Pedometer.isAvailableAsync();
         if (!available) throw new Error('歩数計が利用できません');
 
-        const result = await Pedometer.getStepCountAsync(start, end);
+        const result = await Pedometer.getStepCountAsync(start, end) as PedometerResult | null;
         const steps = result?.steps ?? 0;
 
         // 概算: 歩幅0.7m, 1歩0.04kcal
@@ -190,9 +224,10 @@ export const useHealthData = () => {
             setState(s => ({ ...s, loading: true, error: null }));
             const res = Platform.OS === 'android' ? await readAndroid() : await readIOS();
             setState({ ...res, loading: false, error: null });
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            setState(s => ({ ...s, loading: false, error: e?.message ?? 'データの取得に失敗しました' }));
+            const errorMessage = e instanceof Error ? e.message : 'データの取得に失敗しました';
+            setState(s => ({ ...s, loading: false, error: errorMessage }));
         }
     }, [readAndroid, readIOS]);
 
@@ -216,15 +251,15 @@ export const useYesterdayHealthData = () => {
         error: null,
     });
 
-
     const fetchYesterdayData = useCallback(async () => {
         try {
             setState(s => ({ ...s, loading: true, error: null }));
             const res = Platform.OS === 'android' ? await readYesterdayAndroidData() : await readYesterdayIOSData();
             setState({ ...res, loading: false, error: null });
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            setState(s => ({ ...s, loading: false, error: e?.message ?? 'データの取得に失敗しました' }));
+            const errorMessage = e instanceof Error ? e.message : 'データの取得に失敗しました';
+            setState(s => ({ ...s, loading: false, error: errorMessage }));
         }
     }, []);
 
