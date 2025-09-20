@@ -19,12 +19,11 @@ import { api } from '@/lib/api';
 
 export default function Avatar() {
   const { steps } = useHealthData();
-  const { user, /* refreshUser */ } = useAuth();
+  const { user } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(name);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [manualLevel, setManualLevel] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +34,7 @@ export default function Avatar() {
     if (v >= 1000) return 1;
     return 0;
   };
-  const level = manualLevel ?? getStepLevel(steps);
+  const level = getStepLevel(steps);
   const sparkleCount = [0, 10, 20, 30, 40][level];
   const sparkleSize = [0, 4, 6, 8, 10][level];
 
@@ -54,9 +53,10 @@ export default function Avatar() {
 
   useEffect(() => {
     if (typeof user?.name === 'string') {
-      setName(user.name);   
+      setName(user.name);
     }
   }, [user?.name]);
+
   const handleEdit = () => {
     setTempName(name);
     setIsEditing(true);
@@ -70,12 +70,11 @@ export default function Avatar() {
     setError(null);
 
     try {
-      const res = await api.post <{ name?: string }>(
+      const res = await api.post<{ name?: string }>(
         '/user/rename',
         { name: next },
         { validateStatus: () => true }
       );
-      console.log(res.data.name)
 
       if (res.status >= 200 && res.status < 300) {
         const updated = res.data?.name ?? next;
@@ -143,18 +142,6 @@ export default function Avatar() {
           />
         </View>
       )}
-
-      <View style={styles.levelControl}>
-        {[0, 1, 2, 3, 4].map((lvl) => (
-          <TouchableOpacity
-            key={lvl}
-            style={[styles.levelButton, level === lvl && styles.levelButtonActive]}
-            onPress={() => setManualLevel(lvl)}
-          >
-            <Text style={styles.levelButtonText}>{lvl}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -239,37 +226,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     width: '100%',
     textAlign: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-    gap: 8,
-  },
-  levelControl: {
-    position: 'absolute',
-    bottom: 32,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    zIndex: 20,
-  },
-  levelButton: {
-    backgroundColor: '#2D3748',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#000',
-  },
-  levelButtonActive: {
-    backgroundColor: '#FFD900',
-  },
-  levelButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
 });

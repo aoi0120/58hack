@@ -1,13 +1,20 @@
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
-import { useEffect, useRef, useState } from "react";
-import type { Opponent } from "../types";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import type { Opponent } from '../types';
+import { useTotalStep } from '../../home/context/TotalStep';
 
 export function BattleResultPanel({
   opponent,
   onNext,
 }: {
   opponent: Opponent;
-  onNext: (winner: "me" | "opponent") => void;
+  onNext: (winner: 'me' | 'opponent') => void;
 }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const resultAnim = useRef(new Animated.Value(0)).current;
@@ -15,9 +22,11 @@ export function BattleResultPanel({
 
   const [opponentSteps, setOpponentSteps] = useState<number | null>(null);
   const [displaySteps, setDisplaySteps] = useState(0);
-  const [winner, setWinner] = useState<"me" | "opponent" | null>(null);
+  const [winner, setWinner] = useState<'me' | 'opponent' | null>(null);
 
   const mySteps = 12345;
+
+  const { totalStep, setTotalStep, checkLevelUp } = useTotalStep();
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -38,7 +47,7 @@ export function BattleResultPanel({
 
       setTimeout(() => {
         setOpponentSteps(final);
-        const result = mySteps >= final ? "me" : "opponent";
+        const result = mySteps >= final ? 'me' : 'opponent';
         setWinner(result);
 
         Animated.timing(resultAnim, {
@@ -62,11 +71,16 @@ export function BattleResultPanel({
   }, []);
 
   const resultText =
-    winner === "me" ? "YOU WIN!" : winner === "opponent" ? "YOU LOSE..." : "";
+    winner === 'me' ? 'YOU WIN!' : winner === 'opponent' ? 'YOU LOSE...' : '';
   const resultColor =
-    winner === "me" ? "#FFD900" : winner === "opponent" ? "#FF5252" : "#FFFFFF";
+    winner === 'me' ? '#FFD900' : winner === 'opponent' ? '#FF5252' : '#FFFFFF';
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (winner === 'me') {
+      const updatedStep = totalStep + 5000;
+      setTotalStep(updatedStep);
+      await checkLevelUp();
+    }
     if (winner) {
       onNext(winner);
     }
@@ -90,25 +104,25 @@ export function BattleResultPanel({
         <View style={styles.statsRow}>
           <View style={styles.statsBox}>
             <Text style={styles.statsLabel}>自分</Text>
-            <Text style={[styles.steps, { color: "#4CAF50" }]}>
+            <Text style={[styles.steps, { color: '#4CAF50' }]}>
               {mySteps.toLocaleString()}
             </Text>
             <Text style={styles.unit}>歩</Text>
           </View>
           <View style={styles.statsBox}>
             <Text style={styles.statsLabel}>{opponent.name}</Text>
-            <Text style={[styles.steps, { color: "#FF5252" }]}>
+            <Text style={[styles.steps, { color: '#FF5252' }]}>
               {displaySteps.toLocaleString()}
             </Text>
             <Text style={styles.unit}>歩</Text>
           </View>
         </View>
 
-        <Animated.View style={{ opacity: messageAnim, alignItems: "center" }}>
+        <Animated.View style={{ opacity: messageAnim, alignItems: 'center' }}>
           <Text style={styles.subtitle}>
-            {winner === "me"
-              ? "おめでとう！バトルに勝利した！"
-              : "残念…バトルに敗北した"}
+            {winner === 'me'
+              ? 'おめでとう！バトルに勝利した！'
+              : '残念…バトルに敗北した'}
           </Text>
           <TouchableOpacity style={styles.button} onPress={handleNext}>
             <Text style={styles.buttonText}>バトルを終える</Text>
@@ -122,43 +136,43 @@ export function BattleResultPanel({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1C2024",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#1C2024',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   resultBox: {
-    width: "90%",
+    width: '90%',
     maxWidth: 360,
-    alignItems: "center",
+    alignItems: 'center',
   },
   title: {
     fontSize: 55,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     letterSpacing: 1.5,
     marginBottom: 16,
     minHeight: 56,
   },
   subtitle: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     marginBottom: 24,
     minHeight: 20,
   },
   statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
     marginBottom: 24,
   },
   statsBox: {
-    backgroundColor: "#2D3748",
+    backgroundColor: '#2D3748',
     borderWidth: 4,
-    borderColor: "#000",
+    borderColor: '#000',
     borderRadius: 12,
     padding: 12,
-    width: "48%",
-    alignItems: "center",
-    shadowColor: "#000",
+    width: '48%',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -166,34 +180,34 @@ const styles = StyleSheet.create({
   },
   statsLabel: {
     fontSize: 12,
-    color: "#C9D1E0",
+    color: '#C9D1E0',
     marginBottom: 4,
   },
   steps: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   unit: {
     fontSize: 12,
-    color: "#C9D1E0",
+    color: '#C9D1E0',
     marginTop: 4,
   },
   button: {
-    backgroundColor: "#3E8DFF",
+    backgroundColor: '#3E8DFF',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#000",
-    shadowColor: "#000",
+    borderColor: '#000',
+    shadowColor: '#000',
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 6,
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
 });

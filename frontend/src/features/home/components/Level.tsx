@@ -1,39 +1,50 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useEffect } from 'react';
-import { useTotalStep } from '../context/TotalStep';
+import { useHealthData, useTotalSteps } from '../../../hooks/useHealthData';
+import { useTotalWins } from '../../../hooks/useWinRateData';
 import { calculateLevel } from '@/src/utils/levelUtils';
 
 export default function LevelBar() {
-    const { totalStep, checkLevelUp } = useTotalStep();
-    const levelInfo = calculateLevel(totalStep);
+  const { totalSteps } = useTotalSteps();
+  const { steps: todaySteps } = useHealthData();
+  const { totalWins } = useTotalWins();
 
-    // 歩数が更新された時にレベルアップをチェック
-    useEffect(() => {
-        console.log('Level.tsx - レベルアップチェック実行:', { totalStep });
-        if (totalStep > 0) {
-            checkLevelUp();
-        }
-    }, [totalStep, checkLevelUp]);
+  const winSteps = totalWins * 5000;
+  const totalPoints = totalSteps + todaySteps + winSteps;
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.row}>
-                <Text style={styles.label}>Lv.</Text>
-                <Text style={styles.level}>{levelInfo.level}</Text>
-                <View style={styles.bar}>
-                    <View
-                        style={[
-                            styles.fill,
-                            { width: `${levelInfo.progressPercentage}%` }
-                        ]}
-                    />
-                </View>
-            </View>
-            <Text style={styles.caption}>
-                あと <Text style={styles.highlight}>{levelInfo.stepsRemaining.toLocaleString()}</Text> 歩でレベルアップ
-            </Text>
+  const levelInfo = calculateLevel(totalPoints);
+
+  useEffect(() => {
+    console.log('Level.tsx - レベルアップチェック実行:', {
+      totalSteps,
+      todaySteps,
+      totalWins,
+      totalPoints,
+    });
+    // レベルアップ演出などがあればここで呼び出し
+    // checkLevelUp(levelInfo.level); ← 必要なら useLevelUp() などに分離
+  }, [totalPoints]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <Text style={styles.label}>Lv.</Text>
+        <Text style={styles.level}>{levelInfo.level}</Text>
+        <View style={styles.bar}>
+          <View
+            style={[styles.fill, { width: `${levelInfo.progressPercentage}%` }]}
+          />
         </View>
-    );
+      </View>
+      <Text style={styles.caption}>
+        あと{' '}
+        <Text style={styles.highlight}>
+          {levelInfo.stepsRemaining.toLocaleString()}
+        </Text>{' '}
+        歩でレベルアップ
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
