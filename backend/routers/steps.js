@@ -46,6 +46,37 @@ router.post('/yesterday', authMiddleware, async (req, res) => {
 	}
 });
 
+// 昨日の歩数を取得するAPI
+router.get('/yesterday', authMiddleware, async (req, res) => {
+	const userId = req.userId;
+	if (!userId) {
+		return res.status(400).json({ message: 'ユーザーIDがありません' });
+	}
+
+	try {
+		// 昨日の日付を計算
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		yesterday.setHours(0, 0, 0, 0);
+
+		// 昨日の歩数データを取得
+		const stepRecord = await prisma.stepRecord.findFirst({
+			where: {
+				userId: userId,
+				date: yesterday,
+			},
+		});
+
+		return res.status(200).json({
+			steps: stepRecord?.steps || 0,
+			date: yesterday.toISOString().split('T')[0],
+		});
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ message: 'サーバーエラーです' });
+	}
+});
+
 // 今までの総歩数を渡すAPI
 router.get('/total_steps', authMiddleware, async (req, res) => {
 	const userId = req.userId;
