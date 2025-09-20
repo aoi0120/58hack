@@ -15,7 +15,6 @@ model User {
   name         String
   age          Int
   stepRecords  StepRecord[]
-  encounters Encounters[]
   wonBattles   BattleRecord[] @relation("Winner")
   lostBattles  BattleRecord[] @relation("Loser")
   encountersRecords Encounters[] @relation("EncountersRecords")
