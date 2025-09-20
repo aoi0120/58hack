@@ -24,4 +24,20 @@ router.post("/result", async (req, res) => {
   }
 });
 
+//勝利数保存API
+router.get("/total_wins", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ message: "ユーザーIDがありません" });
+
+  try {
+    const totalWins = await prisma.battleRecord.count({
+      where: { winnerId: userId },
+    });
+    res.status(200).json({ totalWins });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "サーバーエラーです" });
+  }
+});
+
 module.exports = router;

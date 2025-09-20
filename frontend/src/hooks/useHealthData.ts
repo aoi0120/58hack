@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Platform, AppState } from 'react-native';
 import { Pedometer } from 'expo-sensors';
+import { fetchStepRanking, fetchTotalSteps } from '../../lib/api';
 // HealthKit imports (for development builds only)
 // import {
 //     requestAuthorization,
@@ -265,4 +266,62 @@ export const useYesterdayHealthData = () => {
     }, [fetchYesterdayData]);
 
     return { ...state, refetch: fetchYesterdayData };
+};
+
+type StepRankingItem = {
+  rank: number;
+  steps: number;
+  user: {
+    id: string;
+    name: string;
+  };
+};
+
+export const useWeeklyHealthData = () => {
+  const [steps, setSteps] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const ranking: StepRankingItem[] = await fetchStepRanking(7); // ← 7日分の歩数ランキング取得
+
+        // 仮の照合（本番は userId で照合）
+        const me = ranking.find((r) => r.user.name === 'あなた');
+        setSteps(me?.steps ?? 0);
+      } catch (err) {
+        setError('歩数取得に失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  return { steps, loading, error };
+};
+
+export const useTotalSteps = () => {
+  const [totalSteps, setTotalSteps] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const steps = await fetchTotalSteps();
+        setTotalSteps(steps);
+      } catch (err) {
+        setError('総歩数の取得に失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  return { totalSteps, loading, error };
 };
