@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 import { calculateLevel } from "@/src/utils/levelUtils";
 import { AxiosError } from "axios";
@@ -90,29 +90,46 @@ export const TotalStepProvider = ({ children }: { children: ReactNode }) => {
     // 強制的にレベルアップをテストする関数
     const forceLevelUp = async () => {
         const calculatedLevel = levelInfo.level;
+        console.log('=== 強制レベルアップ開始 ===');
+        console.log('現在の状態:', {
+            totalStep,
+            userLevel,
+            calculatedLevel,
+            levelInfo
+        });
+
         try {
-            console.log('強制レベルアップ開始:', calculatedLevel);
+            console.log('APIリクエスト送信中...');
             const response = await api.post('/steps/update_level', { newLevel: calculatedLevel });
             console.log('強制レベルアップレスポンス:', response.data);
+
+            console.log('状態を更新中...');
             setUserLevel(calculatedLevel);
             setShowLevelUp(true);
+            console.log('レベルアップアニメーション表示設定完了');
         } catch (error) {
             console.error('強制レベルアップに失敗:', error);
+            if (error instanceof AxiosError) {
+                console.error('レスポンスエラー:', error.response?.data);
+                console.error('ステータス:', error.response?.status);
+            }
         }
     };
 
+    const value = useMemo(() => ({
+        totalStep,
+        setTotalStep,
+        levelInfo,
+        showLevelUp,
+        setShowLevelUp,
+        userLevel,
+        setUserLevel,
+        checkLevelUp,
+        forceLevelUp
+    }), [totalStep, levelInfo, showLevelUp, userLevel, checkLevelUp, forceLevelUp]);
+
     return (
-        <TotalStepContext.Provider value={{
-            totalStep,
-            setTotalStep,
-            levelInfo,
-            showLevelUp,
-            setShowLevelUp,
-            userLevel,
-            setUserLevel,
-            checkLevelUp,
-            forceLevelUp
-        }}>
+        <TotalStepContext.Provider value={value}>
             {children}
         </TotalStepContext.Provider>
     )
