@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Platform, AppState } from 'react-native';
 import { Pedometer } from 'expo-sensors';
 import {
-    authorize,
-    getStepCount,
-    getActiveEnergyBurned,
-    getDistanceWalkingRunning,
-    HealthKitPermissions
+    requestAuthorization,
+    queryQuantitySamples,
+    QuantityTypeIdentifier
 } from '@kingstinct/react-native-healthkit';
 
 // Pedometer の型定義
@@ -89,40 +87,47 @@ const readIOSData = async (isYesterday = false) => {
     try {
         // HealthKitの権限をリクエスト
         console.log('HealthKit権限リクエスト中...');
-        const permissions: HealthKitPermissions = {
-            read: ['StepCount', 'ActiveEnergyBurned', 'DistanceWalkingRunning'],
-            write: [],
-        };
+        const readTypes: QuantityTypeIdentifier[] = [
+            'HKQuantityTypeIdentifierStepCount',
+            'HKQuantityTypeIdentifierActiveEnergyBurned',
+            'HKQuantityTypeIdentifierDistanceWalkingRunning'
+        ];
 
-        const authResult = await authorize(permissions);
+        const authResult = await requestAuthorization([], readTypes);
         console.log('HealthKit認証結果:', authResult);
 
-        if (!authResult.success) {
+        if (!authResult) {
             throw new Error('HealthKitの認証に失敗しました');
         }
 
         // 歩数データを取得
-        const stepsData = await getStepCount({
-            startDate: start,
-            endDate: end,
+        const stepsData = await queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
+            filter: {
+                startDate: start,
+                endDate: end,
+            },
         });
-        const steps = stepsData?.value || 0;
+        const steps = stepsData.reduce((sum, sample) => sum + sample.quantity, 0);
         console.log('HealthKit歩数取得成功:', steps);
 
         // カロリーデータを取得
-        const caloriesData = await getActiveEnergyBurned({
-            startDate: start,
-            endDate: end,
+        const caloriesData = await queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
+            filter: {
+                startDate: start,
+                endDate: end,
+            },
         });
-        const calories = caloriesData?.value || Math.round(steps * 0.04);
+        const calories = Math.round(caloriesData.reduce((sum, sample) => sum + sample.quantity, 0));
         console.log('HealthKitカロリー取得:', calories);
 
         // 距離データを取得
-        const distanceData = await getDistanceWalkingRunning({
-            startDate: start,
-            endDate: end,
+        const distanceData = await queryQuantitySamples('HKQuantityTypeIdentifierDistanceWalkingRunning', {
+            filter: {
+                startDate: start,
+                endDate: end,
+            },
         });
-        const distance = distanceData?.value ? Math.round(distanceData.value * 1000) : Math.round(steps * 0.7);
+        const distance = Math.round(distanceData.reduce((sum, sample) => sum + sample.quantity, 0) * 1000);
         console.log('HealthKit距離取得:', distance);
 
         const result = {
