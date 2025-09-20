@@ -32,3 +32,7 @@ When you're ready, run:
 ```bash
 npm run reset-project
 ```
+
+build 用
+eas build -p ios --profile development --clear-cache
+npx expo start --dev-client -c --tunnel
