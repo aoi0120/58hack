@@ -6,6 +6,7 @@ const stepsRoute = require("./routers/steps");
 const battleRoute = require("./routers/battle");
 const rankingRoute = require("./routers/ranking");
 const encountRoute = require("./routers/encount");
+const userRoute = require("./routers/user");
 
 require("dotenv").config();
 
@@ -19,5 +20,6 @@ app.use("/api/steps", stepsRoute);
 app.use("/api/battle", battleRoute);
 app.use("/api/ranking", rankingRoute);
 app.use("/api/encount", encountRoute);
+app.use("/api/user", userRoute);
 
 app.listen(PORT, () => console.log(`server is running on PORT ${PORT}`));
