@@ -3,18 +3,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BattleCard } from "../components/battlecord";
 import { StepsPanel } from "../components/stepspanel";
 import type { Opponent } from "../types";
+import { useNearbyOpponents } from "@/src/hooks/useNearbyOpponents";
+
 
 const BG = "#1F242B";
 
-const opponents: Opponent[] = [
-  { id: "a", name: "謎のサラリーマン", level: 12 },
-  { id: "b", name: "散歩中の犬", level: 5 },
-  { id: "c", name: "ジム帰りの学生", level: 25 },
-];
-
 export function BattlePage() {
   const yesterdaySteps = 8765;
-
+  const { opponents } = useNearbyOpponents("Player"); 
   const onBattle = (op: Opponent) => {
     console.log("battle with", op);
   };
@@ -23,13 +19,10 @@ export function BattlePage() {
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.container}>
         <StepsPanel steps={yesterdaySteps} />
-
-        <Text style={styles.sectionTitle}>すれ違った相手</Text>
-
+        <Text style={styles.sectionTitle}>Bluetoothですれ違った相手</Text>
         {opponents.map((op) => (
           <BattleCard key={op.id} opponent={op} onPress={onBattle} />
         ))}
-
         <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
