@@ -1,122 +1,182 @@
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { calculateLevel, getLevelUpInfo } from '@/src/utils/levelUtils';
+import { useTotalStep } from '../../home/context/TotalStep';
 
-export function LevelUpPanel({ onClose }: { onClose: () => void }) {
-  const bounceAnim = useRef(new Animated.Value(0)).current;
+interface LevelUpPanelProps {
+    onClose: () => void;
+}
 
-  useEffect(() => {
-    Animated.spring(bounceAnim, {
-      toValue: 1,
-      friction: 3,
-      useNativeDriver: true,
-    }).start();
-  }, []);
+export function LevelUpPanel({ onClose }: LevelUpPanelProps) {
+    const { totalStep } = useTotalStep();
+    const [currentLevelInfo, setCurrentLevelInfo] = useState(calculateLevel(totalStep));
+    const [showRewards, setShowRewards] = useState(false);
+    const [scaleAnim] = useState(new Animated.Value(0));
+    const [fadeAnim] = useState(new Animated.Value(0));
 
-  return (
-    <View style={styles.container}>
-      {/* レベル表示 */}
-      <View style={styles.levelBox}>
-        <View style={styles.levelRow}>
-          <Text style={styles.levelLabel}>Lv.</Text>
-          <Text style={styles.levelValue}>26</Text>
-          <View style={styles.levelBar}>
-            <View style={styles.levelFill} />
-          </View>
-        </View>
-        <Text style={styles.levelUpText}>レベルアップ！</Text>
-      </View>
+    useEffect(() => {
+        Animated.parallel([
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                tension: 100,
+                friction: 8,
+                useNativeDriver: true,
+            }),
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+        ]).start();
 
-      {/* LEVEL UP タイトル（強調） */}
-      <Animated.Text
-        style={[
-          styles.levelUpTitle,
-          {
-            transform: [{ scale: bounceAnim }],
-          },
-        ]}
-      >
-        LEVEL UP!
-      </Animated.Text>
+        // 2秒後に報酬を表示
+        const timer = setTimeout(() => {
+            setShowRewards(true);
+        }, 1000);
 
-      {/* OKボタン */}
-      <TouchableOpacity style={styles.button} onPress={onClose}>
-        <Text style={styles.buttonText}>OK</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        return () => clearTimeout(timer);
+    }, []);
+
+    const levelUpInfo = getLevelUpInfo(1, currentLevelInfo.level);
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <Animated.View
+                style={[
+                    styles.content,
+                    {
+                        transform: [{ scale: scaleAnim }],
+                        opacity: fadeAnim,
+                    }
+                ]}
+            >
+                <View style={styles.header}>
+                    <Text style={styles.title}>🎉 レベルアップ！</Text>
+                    <Text style={styles.levelText}>レベル {currentLevelInfo.level}</Text>
+                </View>
+
+                <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>現在の歩数</Text>
+                        <Text style={styles.statValue}>{currentLevelInfo.currentSteps.toLocaleString()} 歩</Text>
+                    </View>
+
+                    <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>次のレベルまで</Text>
+                        <Text style={styles.statValue}>{currentLevelInfo.stepsRemaining.toLocaleString()} 歩</Text>
+                    </View>
+                </View>
+
+                {showRewards && (
+                    <View style={styles.rewardsContainer}>
+                        <Text style={styles.rewardsTitle}>🏆 獲得報酬</Text>
+                        <View style={styles.rewardItem}>
+                            <Text style={styles.rewardText}>✨ レベル {currentLevelInfo.level} 達成</Text>
+                        </View>
+                        <View style={styles.rewardItem}>
+                            <Text style={styles.rewardText}>💪 体力 +10</Text>
+                        </View>
+                        <View style={styles.rewardItem}>
+                            <Text style={styles.rewardText}>⚡ スピード +5</Text>
+                        </View>
+                    </View>
+                )}
+
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                    <Text style={styles.closeButtonText}>続ける</Text>
+                </TouchableOpacity>
+            </Animated.View>
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#1C2024",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-  },
-  levelBox: {
-    backgroundColor: "#2D3748",
-    borderWidth: 2,
-    borderColor: "#000",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 24,
-    width: "90%",
-    maxWidth: 360,
-  },
-  levelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  levelLabel: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#FFD900",
-  },
-  levelValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
-  levelBar: {
-    flex: 1,
-    height: 20,
-    backgroundColor: "#4A5568",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  levelFill: {
-    height: "100%",
-    width: "100%",
-    backgroundColor: "#FFD900",
-  },
-  levelUpText: {
-    fontSize: 12,
-    color: "#C9D1E0",
-    textAlign: "right",
-    fontWeight: "bold",
-    marginTop: 4,
-  },
-  levelUpTitle: {
-    fontSize: 48,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    textShadowColor: "#FFD900",
-    textShadowOffset: { width: 4, height: 4 },
-    textShadowRadius: 0,
-    marginBottom: 40,
-  },
-  button: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#1C2024',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    content: {
+        backgroundColor: '#2D3748',
+        borderRadius: 20,
+        padding: 24,
+        margin: 20,
+        borderWidth: 4,
+        borderColor: '#FFD900',
+        shadowColor: '#FFD900',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFD900',
+        marginBottom: 8,
+    },
+    levelText: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    statsContainer: {
+        marginBottom: 24,
+    },
+    statItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#4B5563',
+    },
+    statLabel: {
+        fontSize: 16,
+        color: '#A0AEC0',
+    },
+    statValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFD900',
+    },
+    rewardsContainer: {
+        marginBottom: 24,
+    },
+    rewardsTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFD900',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    rewardItem: {
+        backgroundColor: '#4B5563',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    rewardText: {
+        fontSize: 16,
+        color: '#fff',
+        textAlign: 'center',
+    },
+    closeButton: {
+        backgroundColor: '#FFD900',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1C2024',
+    },
 });
