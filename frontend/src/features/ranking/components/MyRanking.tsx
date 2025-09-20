@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useMemo } from 'react';
+import { useWeeklyHealthData, useYesterdayHealthData } from '../../../hooks/useHealthData';
 
 type Props = {
   type: 'steps' | 'winrate';
@@ -7,12 +8,23 @@ type Props = {
 };
 
 export default function MyRankingFooter({ type, period }: Props) {
+  const { steps: weeklySteps, loading: loadingWeekly } = useWeeklyHealthData();
+  const { steps: yesterdaySteps, loading: loadingYesterday } = useYesterdayHealthData();
+
   const myRanking = useMemo(() => {
     if (type === 'steps' && period === 'yesterday') {
-      return { rank: 128, name: 'あなた', steps: 7200 };
+      return {
+        rank: 128,
+        name: 'あなた',
+        steps: loadingYesterday ? undefined : yesterdaySteps,
+      };
     }
     if (type === 'steps' && period === 'week') {
-      return { rank: 11, name: 'あなた', steps: 39000 };
+      return {
+        rank: 11,
+        name: 'あなた',
+        steps: loadingWeekly ? undefined : weeklySteps,
+      };
     }
     if (type === 'winrate' && period === 'yesterday') {
       return { rank: 128, name: 'あなた', winRate: 42 };
@@ -21,14 +33,18 @@ export default function MyRankingFooter({ type, period }: Props) {
       return { rank: 12, name: 'あなた', winRate: 61 };
     }
     return null;
-  }, [type, period]);
+  }, [type, period, weeklySteps, loadingWeekly, yesterdaySteps, loadingYesterday]);
 
   if (!myRanking) return null;
 
-  const rankText = `${myRanking.rank}`;
+  const rankText = myRanking.rank != null ? `${myRanking.rank}` : '-';
   const valueText =
     type === 'steps'
-      ? `${myRanking.steps ?? '-'}歩`
+      ? (period === 'yesterday' ? loadingYesterday : loadingWeekly)
+        ? '読み込み中...'
+        : myRanking.steps != null
+          ? `${myRanking.steps.toLocaleString()}歩`
+          : '-歩'
       : `${myRanking.winRate ?? '-'}%`;
 
   return (

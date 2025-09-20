@@ -49,6 +49,45 @@ const getYesterdayRange = () => {
     return { start, end };
 };
 
+const getLast7DaysRange = () => {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const start = new Date(end);
+  start.setDate(end.getDate() - 6); // 昨日含めて7日分
+  return { start, end };
+};
+
+const readAndroidWeeklyData = async () => {
+  const { start, end } = getLast7DaysRange();
+  if ('requestPermissionsAsync' in Pedometer) {
+    const { granted } = await Pedometer.requestPermissionsAsync();
+    if (!granted) throw new Error('モーションとフィットネスの権限が未許可です');
+  }
+
+  const available = await Pedometer.isAvailableAsync();
+  if (!available) throw new Error('歩数計が利用できません');
+
+  const result = await Pedometer.getStepCountAsync(start, end);
+  const steps = result?.steps ?? 0;
+
+  return {
+    steps,
+    calories: Math.round(steps * 0.04),
+    distance: Math.round(steps * 0.7),
+  };
+};
+
+const readIOSWeeklyData = async () => {
+  const { start, end } = getLast7DaysRange();
+  return await readIOSDataWithPedometer(start, end);
+};
+
+const readWeeklyData = async () => {
+  return Platform.OS === 'android'
+    ? await readAndroidWeeklyData()
+    : await readIOSWeeklyData();
+};
+
 const readAndroidData = async (isYesterday = false) => {
     console.log('Android Pedometer データ取得開始...');
 
@@ -265,4 +304,38 @@ export const useYesterdayHealthData = () => {
     }, [fetchYesterdayData]);
 
     return { ...state, refetch: fetchYesterdayData };
+};
+
+export const useWeeklyHealthData = () => {
+  const [state, setState] = useState<HealthData>({
+    steps: 0,
+    calories: 0,
+    distance: 0,
+    loading: true,
+    error: null,
+  });
+
+  const fetchWeeklyData = useCallback(async () => {
+    try {
+      setState(s => ({ ...s, loading: true, error: null }));
+      const res = await readWeeklyData();
+      setState({
+        steps: res.steps,
+        calories: res.calories,
+        distance: res.distance,
+        loading: false,
+        error: null,
+      });
+    } catch (e: unknown) {
+      console.error('週データ取得エラー:', e);
+      const errorMessage = e instanceof Error ? e.message : 'データの取得に失敗しました';
+      setState(s => ({ ...s, loading: false, error: errorMessage }));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWeeklyData();
+  }, [fetchWeeklyData]);
+
+  return { ...state, refetch: fetchWeeklyData };
 };
