@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import axios, { InternalAxiosRequestConfig } from 'axios';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://58hack-production.up.railway.app';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 console.log('Environment variables:', {
 	EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
