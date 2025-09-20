@@ -15,10 +15,10 @@ model User {
   name         String
   age          Int
   stepRecords  StepRecord[]
-  foundUsers   User[]   @relation("FoundUsers")
-  foundByUsers User[]   @relation("FoundUsers")
   wonBattles   BattleRecord[] @relation("Winner")
   lostBattles  BattleRecord[] @relation("Loser")
+  encountersRecords Encounters[] @relation("EncountersRecords")
+  recordedEncounters Encounters[] @relation("RecordedEncounters")
 }
 
 model StepRecord {
@@ -36,4 +36,22 @@ model BattleRecord {
   winnerId  Int
   loser     User   @relation("Loser", fields: [loserId], references: [id])
   loserId   Int
+}
+
+model Eid_key {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  eid       String   @default(uuid()) @db.Uuid @unique
+  createdAt DateTime @default(now())
+}
+
+model Encounters {
+  id          Int      @id @default(autoincrement())
+  recorderUserId      Int
+  recorderUser        User     @relation("EncountersRecords", fields: [RecorderUserId], references: [id])
+  recordedUserId      Int
+  recordedUser        User     @relation("RecordedEncounters", fields: [recordedUserId], references: [id])
+  done_battle Boolean
+  createdAt   DateTime @default(now())
 }
