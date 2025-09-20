@@ -48,6 +48,8 @@ model BattleRecord {
   winnerId  Int
   loser     User   @relation("Loser", fields: [loserId], references: [id])
   loserId   Int
+  winnerSteps Int
+  loserSteps  Int
   createdAt DateTime @default(now())
 
   @@index([winnerId])
