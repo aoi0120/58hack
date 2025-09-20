@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Platform, AppState } from 'react-native';
 import { Pedometer } from 'expo-sensors';
-import {
-    requestAuthorization,
-    queryQuantitySamples,
-    QuantityTypeIdentifier
-} from '@kingstinct/react-native-healthkit';
+// HealthKit imports (for development builds only)
+// import {
+//     requestAuthorization,
+//     queryQuantitySamples,
+//     QuantityTypeIdentifier
+// } from '@kingstinct/react-native-healthkit';
 
 // Pedometer の型定義
 interface PedometerResult {
@@ -80,10 +81,14 @@ const readAndroidData = async (isYesterday = false) => {
 };
 
 const readIOSData = async (isYesterday = false) => {
-    console.log('iOS HealthKit データ取得開始...');
+    console.log('iOS データ取得開始...');
     const { start, end } = isYesterday ? getYesterdayRange() : getTodayRange();
     console.log('時間範囲:', { start: start.toISOString(), end: end.toISOString() });
 
+    // Expo GoではPedometerを使用、開発ビルドではHealthKitを使用可能
+    return readIOSDataWithPedometer(start, end);
+
+    /* HealthKit implementation (for development builds only)
     try {
         // HealthKitの権限をリクエスト
         console.log('HealthKit権限リクエスト中...');
@@ -141,6 +146,7 @@ const readIOSData = async (isYesterday = false) => {
         console.warn('HealthKit使用失敗、Pedometerにフォールバック:', error);
         return readIOSDataWithPedometer(start, end);
     }
+    */
 };
 
 const readIOSDataWithPedometer = async (start: Date, end: Date) => {
@@ -188,10 +194,6 @@ export const useHealthData = () => {
     }, []);
 
     const readIOS = useCallback(async () => {
-        if (Platform.OS !== 'ios') {
-            throw new Error('iOS以外では使用できません');
-        }
-
         const data = await readIOSData(false);
         return {
             steps: data.steps,
