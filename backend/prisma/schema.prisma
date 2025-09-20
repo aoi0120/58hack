@@ -18,6 +18,7 @@ model User {
   wonBattles   BattleRecord[] @relation("Winner")
   lostBattles  BattleRecord[] @relation("Loser")
   sessions     RefreshSession[]
+  eidKeys      Eid_key[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,7 +78,7 @@ model Eid_key {
 model Encounters {
   id          Int      @id @default(autoincrement())
   recorderUserId      Int
-  recorderUser        User     @relation("EncountersRecords", fields: [RecorderUserId], references: [id])
+  recorderUser        User     @relation("EncountersRecords", fields: [recorderUserId], references: [id])
   recordedUserId      Int
   recordedUser        User     @relation("RecordedEncounters", fields: [recordedUserId], references: [id])
   done_battle Boolean
