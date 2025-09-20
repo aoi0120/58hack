@@ -29,7 +29,8 @@
             "permissions": [
                 "android.permission.ACTIVITY_RECOGNITION",
                 "android.permission.ACCESS_FINE_LOCATION"
-            ]
+            ],
+            "package": "app.kobayashi.aopon.HealthGame"
         },
         "web": {
             "output": "static",
@@ -40,7 +41,7 @@
             [
                 "expo-splash-screen",
                 {
-                    "image": "./assets/images/splash-icon.png",
+                    "image": "./assets/images/icon.png",
                     "imageWidth": 200,
                     "resizeMode": "contain",
                     "backgroundColor": "#ffffff",
