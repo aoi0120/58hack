@@ -21,7 +21,7 @@ export function LoginForm() {
         }
 
         try {
-            // await login(email.trim(), password.trim());
+            await login(email.trim(), password.trim());
             router.replace('/(tabs)');
         } catch {
             setError('メールアドレスまたはパスワードが間違っています。');
