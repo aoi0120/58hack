@@ -14,6 +14,8 @@ model User {
   password     String
   name         String
   age          Int
+  level        Int          @default(1)
+  lastLevelUpAt DateTime?
   stepRecords  StepRecord[]
   wonBattles   BattleRecord[] @relation("Winner")
   lostBattles  BattleRecord[] @relation("Loser")
