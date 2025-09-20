@@ -1,20 +1,14 @@
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { useState } from 'react';
 
 export type PeriodType = 'yesterday' | 'week';
 
 export default function RankingPeriodSelector({
+  value,
   onChange,
 }: {
+  value: PeriodType;
   onChange?: (period: PeriodType) => void;
 }) {
-  const [selected, setSelected] = useState<PeriodType>('yesterday');
-
-  const handleSelect = (type: PeriodType) => {
-    setSelected(type);
-    onChange?.(type);
-  };
-
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
@@ -22,14 +16,14 @@ export default function RankingPeriodSelector({
           style={[
             styles.button,
             styles.leftButton,
-            selected === 'yesterday' ? styles.active : styles.inactive,
+            value === 'yesterday' ? styles.active : styles.inactive,
           ]}
-          onPress={() => handleSelect('yesterday')}
+          onPress={() => onChange?.('yesterday')}
         >
           <Text
             style={[
               styles.text,
-              selected === 'yesterday' ? styles.activeText : styles.inactiveText,
+              value === 'yesterday' ? styles.activeText : styles.inactiveText,
             ]}
           >
             昨日
@@ -40,14 +34,14 @@ export default function RankingPeriodSelector({
           style={[
             styles.button,
             styles.rightButton,
-            selected === 'week' ? styles.active : styles.inactive,
+            value === 'week' ? styles.active : styles.inactive,
           ]}
-          onPress={() => handleSelect('week')}
+          onPress={() => onChange?.('week')}
         >
           <Text
             style={[
               styles.text,
-              selected === 'week' ? styles.activeText : styles.inactiveText,
+              value === 'week' ? styles.activeText : styles.inactiveText,
             ]}
           >
             一週間

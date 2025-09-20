@@ -1,24 +1,28 @@
 import { SafeAreaView, StyleSheet, View, ScrollView } from 'react-native';
-import RankingFilterTabs from '../components/Filter';
-import RankingPeriodSelector from '../components/TimeFilter';
+import { useState, useMemo } from 'react';
+import RankingFilterTabs, { FilterType } from '../components/Filter';
+import RankingPeriodSelector, { PeriodType } from '../components/TimeFilter';
 import RankingCardList from '../components/RankingCard';
 import MyRankingFooter from '../components/MyRanking';
 
 export function RankingPage() {
-  const handlePeriodChange = (period: 'yesterday' | 'week') => {
-    console.log('選択された期間:', period);
-    // TODO: period に応じて表示を切り替える
-  };
+  const [filter, setFilter] = useState<FilterType>('winRate');
+  const [period, setPeriod] = useState<PeriodType>('yesterday');
+
+  // 内部で使う型に変換（winRate → winrate）
+  const rankingType = useMemo(() => {
+    return filter === 'winRate' ? 'winrate' : 'steps';
+  }, [filter]);
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <RankingFilterTabs />
-        <RankingPeriodSelector onChange={handlePeriodChange} />
+        <RankingFilterTabs value={filter} onChange={setFilter} />
+        <RankingPeriodSelector value={period} onChange={setPeriod} />
         <ScrollView>
-          <RankingCardList />
+          <RankingCardList type={rankingType} period={period} />
         </ScrollView>
-        <MyRankingFooter />
+        <MyRankingFooter type={rankingType} period={period} />
       </View>
     </SafeAreaView>
   );
