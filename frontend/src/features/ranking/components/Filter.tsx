@@ -1,34 +1,28 @@
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { useState } from 'react';
 
 export type FilterType = 'winRate' | 'steps';
 
 export default function RankingFilterTabs({
+  value,
   onChange,
 }: {
+  value: FilterType;
   onChange?: (filter: FilterType) => void;
 }) {
-  const [selected, setSelected] = useState<FilterType>('winRate');
-
-  const handleSelect = (type: FilterType) => {
-    setSelected(type);
-    onChange?.(type);
-  };
-
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={[
           styles.tab,
-          selected === 'winRate' ? styles.activeTab : styles.inactiveTab,
+          value === 'winRate' ? styles.activeTab : styles.inactiveTab,
           styles.leftTab,
         ]}
-        onPress={() => handleSelect('winRate')}
+        onPress={() => onChange?.('winRate')}
       >
         <Text
           style={[
             styles.tabText,
-            selected === 'winRate' ? styles.activeText : styles.inactiveText,
+            value === 'winRate' ? styles.activeText : styles.inactiveText,
           ]}
         >
           勝率
@@ -38,15 +32,15 @@ export default function RankingFilterTabs({
       <TouchableOpacity
         style={[
           styles.tab,
-          selected === 'steps' ? styles.activeTab : styles.inactiveTab,
+          value === 'steps' ? styles.activeTab : styles.inactiveTab,
           styles.rightTab,
         ]}
-        onPress={() => handleSelect('steps')}
+        onPress={() => onChange?.('steps')}
       >
         <Text
           style={[
             styles.tabText,
-            selected === 'steps' ? styles.activeText : styles.inactiveText,
+            value === 'steps' ? styles.activeText : styles.inactiveText,
           ]}
         >
           歩数
