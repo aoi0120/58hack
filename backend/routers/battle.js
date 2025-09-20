@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 router.post('/encounter', authMiddleware, async (req, res) => {
 	const userId = req.userId;
 	const { opponentId, mySteps, opponentSteps } = req.body;
-	
+
 	if (!userId || !opponentId || mySteps === undefined || opponentSteps === undefined) {
 		return res.status(400).json({ message: '必要なデータがありません' });
 	}
@@ -19,16 +19,16 @@ router.post('/encounter', authMiddleware, async (req, res) => {
 			where: {
 				OR: [
 					{ winnerId: userId, loserId: parseInt(opponentId) },
-					{ winnerId: parseInt(opponentId), loserId: userId }
-				]
-			}
+					{ winnerId: parseInt(opponentId), loserId: userId },
+				],
+			},
 		});
 
 		if (existingBattle) {
-			return res.status(400).json({ 
+			return res.status(400).json({
 				message: 'この相手とは既にバトル済みです',
 				battleId: existingBattle.id,
-				alreadyBattled: true
+				alreadyBattled: true,
 			});
 		}
 
@@ -55,7 +55,7 @@ router.post('/encounter', authMiddleware, async (req, res) => {
 			winner: isWinner ? 'me' : 'opponent',
 			mySteps,
 			opponentSteps,
-			alreadyBattled: false
+			alreadyBattled: false,
 		});
 	} catch (err) {
 		console.error(err);
