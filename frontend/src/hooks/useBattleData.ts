@@ -25,11 +25,24 @@ export function useBattleData() {
 	useEffect(() => {
 		const fetchYesterdaySteps = async () => {
 			try {
+				console.log('🔍 昨日の歩数データを取得開始...', { userId: user?.id });
 				const response = await api.get('/steps/yesterday');
+				console.log('📊 昨日の歩数APIレスポンス:', {
+					status: response.status,
+					data: response.data,
+					steps: response.data.steps,
+					date: response.data.date,
+				});
 				setYesterdaySteps(response.data.steps || 0);
-				console.log('昨日の歩数データを取得:', response.data.steps);
+				console.log('✅ 昨日の歩数データを取得完了:', response.data.steps);
 			} catch (error) {
-				console.error('昨日の歩数データの取得に失敗:', error);
+				console.error('❌ 昨日の歩数データの取得に失敗:', error);
+				if (error.response) {
+					console.error('❌ レスポンスエラー:', {
+						status: error.response.status,
+						data: error.response.data,
+					});
+				}
 			}
 		};
 

@@ -57,15 +57,30 @@ export function useNearbyOpponents() {
 	const createBattleRecord = useCallback(
 		async (opponentId: string, mySteps: number, opponentSteps: number) => {
 			try {
-				console.log('バトル記録を作成中:', { opponentId, mySteps, opponentSteps });
-
-				const response = await api.post('/battle/encounter', {
+				console.log('⚔️ バトル記録を作成中:', {
 					opponentId,
 					mySteps,
 					opponentSteps,
+					myUserId: user?.id,
+					timestamp: new Date().toISOString(),
 				});
 
-				console.log('バトル記録作成完了:', response.data);
+				const requestData = {
+					opponentId,
+					mySteps,
+					opponentSteps,
+				};
+
+				console.log('📤 バトル記録APIリクエスト:', requestData);
+
+				const response = await api.post('/battle/encounter', requestData);
+
+				console.log('✅ バトル記録作成完了:', {
+					status: response.status,
+					data: response.data,
+					battleId: response.data.battleId,
+					winner: response.data.winner,
+				});
 
 				// バトル結果を設定
 				setBattleResult({
@@ -86,15 +101,23 @@ export function useNearbyOpponents() {
 				// 相手をリストから削除（バトル済みのため）
 				setOpponents((prev) => prev.filter((op) => op.id !== opponentId));
 			} catch (error) {
-				console.error('バトル記録の作成に失敗:', error);
-				if (error instanceof AxiosError && error.response?.data?.alreadyBattled) {
-					// 既にバトル済みの場合
-					setBattledOpponents((prev) => new Set([...prev, opponentId]));
-					setOpponents((prev) => prev.filter((op) => op.id !== opponentId));
+				console.error('❌ バトル記録の作成に失敗:', error);
+				if (error instanceof AxiosError) {
+					console.error('❌ バトル記録APIエラー詳細:', {
+						status: error.response?.status,
+						data: error.response?.data,
+						message: error.message,
+					});
+					if (error.response?.data?.alreadyBattled) {
+						// 既にバトル済みの場合
+						console.log('⚠️ 既にバトル済みの相手です');
+						setBattledOpponents((prev) => new Set([...prev, opponentId]));
+						setOpponents((prev) => prev.filter((op) => op.id !== opponentId));
+					}
 				}
 			}
 		},
-		[]
+		[user?.id]
 	);
 
 	useEffect(() => {

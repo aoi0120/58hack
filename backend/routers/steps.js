@@ -61,6 +61,12 @@ router.get('/yesterday', authMiddleware, async (req, res) => {
 		const end = new Date(start);
 		end.setDate(end.getDate() + 1);
 
+		console.log('🔍 昨日の歩数取得開始:', {
+			userId,
+			start: start.toISOString(),
+			end: end.toISOString(),
+		});
+
 		// 昨日の歩数データ（範囲検索）
 		const records = await prisma.stepRecord.findMany({
 			where: {
@@ -69,14 +75,26 @@ router.get('/yesterday', authMiddleware, async (req, res) => {
 			},
 		});
 
+		console.log('📊 昨日の歩数レコード:', {
+			userId,
+			recordCount: records.length,
+			records: records.map((r) => ({ id: r.id, date: r.date, steps: r.steps })),
+		});
+
 		const steps = records.reduce((sum, r) => sum + (r.steps || 0), 0);
+
+		console.log('✅ 昨日の歩数取得完了:', {
+			userId,
+			steps,
+			date: start.toISOString().split('T')[0],
+		});
 
 		return res.status(200).json({
 			steps,
 			date: start.toISOString().split('T')[0],
 		});
 	} catch (err) {
-		console.error(err);
+		console.error('❌ 昨日の歩数取得エラー:', err);
 		res.status(500).json({ message: 'サーバーエラーです' });
 	}
 });
