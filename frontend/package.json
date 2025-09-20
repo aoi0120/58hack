@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start --clear",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
+    "android": "expo run:android",
     "ios": "expo start --ios -c",
     "web": "expo start --web",
     "lint": "expo lint"
@@ -27,6 +27,7 @@
     "expo-haptics": "~15.0.7",
     "expo-image": "~3.0.8",
     "expo-linking": "~8.0.8",
+    "expo-nearby-connections": "^1.0.0",
     "expo-router": "~6.0.7",
     "expo-secure-store": "~15.0.7",
     "expo-sensors": "~15.0.7",
