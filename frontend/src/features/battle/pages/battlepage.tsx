@@ -1,20 +1,36 @@
 import { ScrollView, View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BattleCard } from "../components/battlecord";
 import { StepsPanel } from "../components/stepspanel";
 import { BattleResultPanel } from "../components/BattleResultPanel";
 import { LevelUpPanel } from "../components/LevelUpPanel";
 import type { Opponent } from "../types";
-// import { useNearbyOpponents } from "@/src/hooks/useNearbyOpponents";
+import { useNearbyOpponents } from "@/src/hooks/useNearbyOpponents";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 const BG = "#1F242B";
 
+const Empty = ({ error, scanning }: { error: string | null; scanning: boolean }) => (
+    <View style={styles.emptyWrap}>
+        {error ? (
+            <Text style={styles.errorText}>{error}</Text>
+        ) : scanning ? (
+            <>
+                <ActivityIndicator />
+                <Text style={styles.emptyText}>近くの相手を探しています…</Text>
+            </>
+        ) : (
+            <>
+                <Text style={styles.emptyText}>近くに相手がいません</Text>
+                <Text style={styles.emptySubText}>Bluetoothをオンにして待機中...</Text>
+            </>
+        )}
+    </View>
+);
+
 export function BattlePage() {
-    // const { opponents, scanning } = useNearbyOpponents("Player");
-    const opponents: Opponent[] = []; // 一時的に空配列
-    const scanning = false; // 一時的にfalse
+    const { opponents, scanning, error, resetBattleData, battleResult, setBattleResult } = useNearbyOpponents();
     const { user, loading } = useAuth();
     const isAuthenticated = !!user;
 
@@ -27,21 +43,21 @@ export function BattlePage() {
     };
 
     const handleResultNext = (winner: "me" | "opponent") => {
-        setStep(winner === "me" ? "levelup" : "list");
+        setStep("list");
+        // バトルデータをリセット
+        resetBattleData();
+        setBattleResult(null);
+        setSelectedOpponent(null);
     };
 
-    const Empty = () => (
-        <View style={styles.emptyWrap}>
-            {/* {scanning ? (
-                <>
-                    <ActivityIndicator />
-                    <Text style={styles.emptyText}>近くの相手を探しています…</Text>
-                </>
-            ) : ( */}
-            <Text style={styles.emptyText}>Bluetooth機能は一時的に無効化されています</Text>
-            {/* )} */}
-        </View>
-    );
+    // バトル結果が発生したら結果画面を表示
+    useEffect(() => {
+        if (battleResult) {
+            setSelectedOpponent(battleResult.opponent);
+            setStep("result");
+        }
+    }, [battleResult]);
+
 
     if (loading) {
         return (
@@ -74,13 +90,13 @@ export function BattlePage() {
             {step === "list" && (
                 <ScrollView contentContainerStyle={styles.container}>
                     <StepsPanel />
-                    <Text style={styles.sectionTitle}>Bluetoothですれ違った相手（一時的に無効）</Text>
+                    <Text style={styles.sectionTitle}>Bluetoothですれ違った相手</Text>
 
                     {opponents.length === 0 ? (
-                        <Empty />
+                        <Empty error={error} scanning={scanning} />
                     ) : (
-                        opponents.map((op) => (
-                            <BattleCard key={op.id} opponent={op} onPress={onBattle} />
+                        opponents.map((op: Opponent, index: number) => (
+                            <BattleCard key={`${op.id}-${index}`} opponent={op} onPress={onBattle} />
                         ))
                     )}
 
@@ -89,7 +105,15 @@ export function BattlePage() {
             )}
 
             {step === "result" && selectedOpponent && (
-                <BattleResultPanel opponent={selectedOpponent} onNext={handleResultNext} />
+                <BattleResultPanel
+                    opponent={selectedOpponent}
+                    onNext={handleResultNext}
+                    battleResult={battleResult ? {
+                        winner: battleResult.winner,
+                        mySteps: battleResult.mySteps,
+                        opponentSteps: battleResult.opponentSteps
+                    } : undefined}
+                />
             )}
 
             {step === "levelup" && (
@@ -119,6 +143,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     emptyText: { color: "#AAB7C8", fontSize: 16 },
+    emptySubText: { color: "#7A8A9A", fontSize: 14 },
     errorText: {
         color: "#FF6B6B",
         fontSize: 16,

@@ -54,22 +54,26 @@ router.get('/yesterday', authMiddleware, async (req, res) => {
 	}
 
 	try {
-		// 昨日の日付を計算
-		const yesterday = new Date();
-		yesterday.setDate(yesterday.getDate() - 1);
-		yesterday.setHours(0, 0, 0, 0);
+		// 昨日の開始と終了（[start, end)）
+		const start = new Date();
+		start.setDate(start.getDate() - 1);
+		start.setHours(0, 0, 0, 0);
+		const end = new Date(start);
+		end.setDate(end.getDate() + 1);
 
-		// 昨日の歩数データを取得
-		const stepRecord = await prisma.stepRecord.findFirst({
+		// 昨日の歩数データ（範囲検索）
+		const records = await prisma.stepRecord.findMany({
 			where: {
 				userId: userId,
-				date: yesterday,
+				date: { gte: start, lt: end },
 			},
 		});
 
+		const steps = records.reduce((sum, r) => sum + (r.steps || 0), 0);
+
 		return res.status(200).json({
-			steps: stepRecord?.steps || 0,
-			date: yesterday.toISOString().split('T')[0],
+			steps,
+			date: start.toISOString().split('T')[0],
 		});
 	} catch (err) {
 		console.error(err);
