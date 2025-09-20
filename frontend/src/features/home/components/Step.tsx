@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useHealthData } from '../../../hooks/useHealthData';
 
+
 export default function StepCard() {
     const { steps, loading, error, refetch } = useHealthData();
 
@@ -8,8 +9,10 @@ export default function StepCard() {
         return stepCount.toLocaleString('ja-JP');
     };
 
+
     return (
         <View style={styles.card}>
+
             <Text style={styles.label}>今日の歩数</Text>
             <View style={styles.stepRow}>
                 {loading ? (
@@ -24,6 +27,7 @@ export default function StepCard() {
                 )}
             </View>
         </View>
+        
     );
 }
 
