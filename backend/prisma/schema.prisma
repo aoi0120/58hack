@@ -17,6 +17,10 @@ model User {
   stepRecords  StepRecord[]
   wonBattles   BattleRecord[] @relation("Winner")
   lostBattles  BattleRecord[] @relation("Loser")
+  sessions     RefreshSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   encountersRecords Encounters[] @relation("EncountersRecords")
   recordedEncounters Encounters[] @relation("RecordedEncounters")
 }
@@ -25,8 +29,13 @@ model StepRecord {
   id Int @id @default(autoincrement())
   user User @relation(fields: [userId], references: [id])
   userId Int
-  date DateTime
+  date DateTime @db.Date
   steps Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
 }
 
 model BattleRecord {
@@ -36,6 +45,25 @@ model BattleRecord {
   winnerId  Int
   loser     User   @relation("Loser", fields: [loserId], references: [id])
   loserId   Int
+  createdAt DateTime @default(now())
+
+  @@index([winnerId])
+  @@index([loserId])
+}
+
+
+model RefreshSession {
+  id String @id @default(uuid())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+  tokenHash String @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  replacedBy String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Eid_key {
