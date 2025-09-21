@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+// src/hooks/useNearbyOpponents.ts
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import type { Opponent } from '../features/battle/types';
 import { useBattleData } from './useBattleData';
 import { useAuth } from '../features/auth/context/AuthContext';
@@ -16,28 +17,50 @@ export function useNearbyOpponents() {
 		opponentSteps: number;
 		opponent: Opponent;
 	} | null>(null);
-	const { startDataExchange, opponentData, resetBattleData, myBattleData } = useBattleData();
+	const {
+		startDataExchange,
+		opponentData,
+		resetBattleData,
+		myBattleData,
+		effectiveYesterdaySteps,
+	} = useBattleData();
 	const { user } = useAuth();
 
 	// ユーザー名を取得（デフォルトは"Player"）
 	const myName = user?.name || 'Player';
 
+	// 役割分担（競合回避）：
+	// 偶数ID: advertiser-only（acceptのみ） / 奇数ID: discoverer-only（requestのみ）
+	const { isDiscoverer, isAdvertiser } = useMemo(() => {
+		const rawId = user?.id;
+		const parsed = rawId ? parseInt(String(rawId), 10) : NaN;
+		if (!Number.isFinite(parsed)) {
+			// 不明時は discoverer として動作
+			return { isDiscoverer: true, isAdvertiser: false };
+		}
+		const discoverer = parsed % 2 !== 0;
+		return { isDiscoverer: discoverer, isAdvertiser: !discoverer };
+	}, [user?.id]);
+
 	// 多重初期化防止
 	const initializedRef = useRef(false);
 
-	// 接続を確立してからデータ交換を行う関数
+	// 接続を確立してからデータ交換を行う関数（discoverer側のみ request）
 	const connectAndExchangeData = useCallback(
 		async (peerId: string, name: string) => {
 			try {
-				console.log('🔗 接続を開始:', { peerId, name });
+				console.log('🔗 接続フロー開始:', { peerId, name, isDiscoverer, isAdvertiser });
 
-				// expo-nearby-connections を取得
 				const mod = await import('expo-nearby-connections');
 				const nearby: any = (mod as any).default ?? (mod as any);
 				const { requestConnection, onConnected } = nearby;
 
-				await requestConnection?.(peerId);
-				console.log('📤 接続リクエスト送信完了:', peerId);
+				if (isDiscoverer) {
+					await requestConnection?.(peerId);
+					console.log('📤 接続リクエスト送信完了:', peerId);
+				} else {
+					console.log('📨 advertiserはrequestせずaccept待ち');
+				}
 
 				const unsubscribe = onConnected?.(({ peerId: connectedPeerId }: any) => {
 					if (connectedPeerId === peerId) {
@@ -50,7 +73,7 @@ export function useNearbyOpponents() {
 				console.error('❌ 接続に失敗:', error);
 			}
 		},
-		[startDataExchange]
+		[startDataExchange, isDiscoverer, isAdvertiser]
 	);
 
 	// バトル記録を作成する関数
@@ -109,7 +132,6 @@ export function useNearbyOpponents() {
 						message: error.message,
 					});
 					if (error.response?.data?.alreadyBattled) {
-						// 既にバトル済みの場合
 						console.log('⚠️ 既にバトル済みの相手です');
 						setBattledOpponents((prev) => new Set([...prev, opponentId]));
 						setOpponents((prev) => prev.filter((op) => op.id !== opponentId));
@@ -160,7 +182,6 @@ export function useNearbyOpponents() {
 
 			const handlePeerFound = ({ peerId, name }: any) => {
 				console.log('🎉 相手発見:', { peerId, name, at: new Date().toISOString() });
-				// 自分自身らしき広告は無視（名前一致の簡易チェック）
 				if (name && name === myName) {
 					console.log('🙅 自分自身のエンドポイントを無視:', { peerId, name });
 					return;
@@ -170,10 +191,11 @@ export function useNearbyOpponents() {
 
 				if (battledOpponents.has(peerId)) return;
 
-				// まず接続
-				connectAndExchangeData(peerId, name);
+				// discoverer のみ接続を開始
+				if (isDiscoverer) {
+					connectAndExchangeData(peerId, name);
+				}
 
-				// UIへ反映
 				setOpponents((prev) => [
 					...prev,
 					{
@@ -190,13 +212,19 @@ export function useNearbyOpponents() {
 				setOpponents((prev) => prev.filter((op) => op.id !== peerId));
 			});
 
-			const unsubInvitation = onInvitationReceived?.(({ peerId }: any) => {
-				console.log('📨 接続リクエスト受信:', { peerId });
-				acceptConnection?.(peerId).catch((e: any) => console.error('accept失敗', e));
+			const unsubInvitation = onInvitationReceived?.(({ peerId, name }: any) => {
+				console.log('📨 接続リクエスト受信:', { peerId, name });
+				// advertiser は自動的に accept
+				if (isAdvertiser) {
+					acceptConnection?.(peerId)
+						.then(() => console.log('🤝 accept ok:', peerId))
+						.catch((e: any) => console.error('accept失敗', e));
+				}
 			});
 
-			const unsubConnected = onConnected?.(({ peerId }: any) => {
-				console.log('🔌 接続済:', { peerId });
+			const unsubConnected = onConnected?.(({ peerId, name }: any) => {
+				console.log('🔌 接続済:', { peerId, name });
+				startDataExchange(peerId);
 			});
 
 			setScanning(true);
@@ -206,20 +234,25 @@ export function useNearbyOpponents() {
 				userName: myName,
 				userId: user?.id,
 				strategy,
+				role: isDiscoverer ? 'discoverer' : 'advertiser',
 			});
 
 			try {
-				await startAdvertise(myName, strategy);
-				console.log('✅ アドバタイズ開始成功:', { myName });
+				if (isAdvertiser) {
+					await startAdvertise(myName, strategy);
+					console.log('✅ アドバタイズ開始成功:', { myName });
+				}
 			} catch (e: any) {
 				console.error('❌ アドバタイズ開始失敗:', e);
 				setError(String(e));
 			}
 
 			try {
-				await startDiscovery(myName, strategy);
-				console.log('✅ ディスカバリー開始成功:', { myName });
-				console.log('🔍 相手を探しています...');
+				if (isDiscoverer) {
+					await startDiscovery(myName, strategy);
+					console.log('✅ ディスカバリー開始成功:', { myName });
+					console.log('🔍 相手を探しています...');
+				}
 			} catch (e: any) {
 				console.error('❌ ディスカバリー開始失敗:', e);
 				setError(String(e));
@@ -255,12 +288,13 @@ export function useNearbyOpponents() {
 		createBattleRecord,
 		user?.id,
 		battledOpponents,
+		isDiscoverer,
+		isAdvertiser,
 	]);
 
 	// 相手のデータが受信されたら、opponentsを更新し、バトル記録を作成
 	useEffect(() => {
 		if (opponentData && myBattleData) {
-			// 自分自身なら無視してリストから除去
 			if (opponentData.userId === (user?.id || '')) {
 				console.log('🙅 自分自身のデータを受信したため無視し除去:', opponentData);
 				const peerId = opponentData.peerId;
@@ -270,7 +304,6 @@ export function useNearbyOpponents() {
 				return;
 			}
 
-			// opponentsのIDはpeerIdで管理しているので、peerIdで更新
 			setOpponents((prev) =>
 				prev.map((opponent) =>
 					opponentData.peerId && opponent.id === opponentData.peerId
@@ -284,14 +317,19 @@ export function useNearbyOpponents() {
 				)
 			);
 
-			// すれ違った瞬間にバトル記録を作成（相手のユーザーIDを使用）
+			console.log('🧮 バトル用歩数（自分/相手）:', {
+				me: effectiveYesterdaySteps,
+				opponent: opponentData.yesterdaySteps,
+				serverMy: myBattleData.yesterdaySteps,
+			});
+
 			createBattleRecord(
 				opponentData.userId,
-				myBattleData.yesterdaySteps,
+				effectiveYesterdaySteps,
 				opponentData.yesterdaySteps
 			);
 		}
-	}, [opponentData, myBattleData, createBattleRecord, user?.id]);
+	}, [opponentData, myBattleData, effectiveYesterdaySteps, createBattleRecord, user?.id]);
 
 	return {
 		opponents,

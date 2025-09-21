@@ -1,13 +1,12 @@
 import { ScrollView, View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
 import { BattleCard } from "../components/battlecord";
 import { StepsPanel } from "../components/stepspanel";
 import { BattleResultPanel } from "../components/BattleResultPanel";
-import { LevelUpPanel } from "../components/LevelUpPanel";
 import type { Opponent } from "../types";
 import { useNearbyOpponents } from "@/src/hooks/useNearbyOpponents";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { useState, useEffect } from "react";
 
 const BG = "#1F242B";
 
@@ -30,34 +29,33 @@ const Empty = ({ error, scanning }: { error: string | null; scanning: boolean })
 );
 
 export function BattlePage() {
-    const { opponents, scanning, error, resetBattleData, battleResult, setBattleResult } = useNearbyOpponents();
+    const {
+        opponents,
+        scanning,
+        error,
+        resetBattleData,
+        battleResult,
+        setBattleResult,
+    } = useNearbyOpponents();
+
     const { user, loading } = useAuth();
     const isAuthenticated = !!user;
 
-    const [step, setStep] = useState<"list" | "result" | "levelup">("list");
+    // 押した相手。これがある間は結果画面を表示（battleResult は後で埋まる）
     const [selectedOpponent, setSelectedOpponent] = useState<Opponent | null>(null);
 
-    const onBattle = (op: Opponent) => {
-        setSelectedOpponent(op);
-        setStep("result");
-    };
-
-    const handleResultNext = (winner: "me" | "opponent") => {
-        setStep("list");
-        // バトルデータをリセット
+    const handleResultNext = () => {
         resetBattleData();
         setBattleResult(null);
         setSelectedOpponent(null);
     };
 
-    // バトル結果が発生したら結果画面を表示
+    // サーバ応答/受信で battleResult が入ったら、selectedOpponent が無ければ補完
     useEffect(() => {
-        if (battleResult) {
+        if (battleResult && !selectedOpponent) {
             setSelectedOpponent(battleResult.opponent);
-            setStep("result");
         }
-    }, [battleResult]);
-
+    }, [battleResult, selectedOpponent]);
 
     if (loading) {
         return (
@@ -87,7 +85,13 @@ export function BattlePage() {
 
     return (
         <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-            {step === "list" && (
+            {selectedOpponent ? (
+                <BattleResultPanel
+                    opponent={selectedOpponent}
+                    onNext={handleResultNext}
+                    battleResult={battleResult || undefined}
+                />
+            ) : (
                 <ScrollView contentContainerStyle={styles.container}>
                     <StepsPanel />
                     <Text style={styles.sectionTitle}>Bluetoothですれ違った相手</Text>
@@ -96,28 +100,20 @@ export function BattlePage() {
                         <Empty error={error} scanning={scanning} />
                     ) : (
                         opponents.map((op: Opponent, index: number) => (
-                            <BattleCard key={`${op.id}-${index}`} opponent={op} onPress={onBattle} />
+                            <BattleCard
+                                key={`${op.id}-${index}`}
+                                opponent={op}
+                                onPress={(o) => {
+                                    console.log("[UI] press battle", o.id);
+                                    // 接続・交換は自動。ここでは選択のみ
+                                    setSelectedOpponent(o);
+                                }}
+                            />
                         ))
                     )}
 
                     <View style={{ height: 24 }} />
                 </ScrollView>
-            )}
-
-            {step === "result" && selectedOpponent && (
-                <BattleResultPanel
-                    opponent={selectedOpponent}
-                    onNext={handleResultNext}
-                    battleResult={battleResult ? {
-                        winner: battleResult.winner,
-                        mySteps: battleResult.mySteps,
-                        opponentSteps: battleResult.opponentSteps
-                    } : undefined}
-                />
-            )}
-
-            {step === "levelup" && (
-                <LevelUpPanel onClose={() => setStep("list")} />
             )}
         </SafeAreaView>
     );
@@ -152,7 +148,6 @@ const styles = StyleSheet.create({
     },
     retryText: {
         color: "#AAB7C8",
-        fontSize: 14,
-        textAlign: "center",
+        fontSize: 14
     },
 });

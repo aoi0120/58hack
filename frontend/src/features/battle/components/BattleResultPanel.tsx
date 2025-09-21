@@ -1,9 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { Opponent } from "../types";
-import { useTotalStep } from "../../home/context/TotalStep";
-import { useAuth } from "../../auth/context/AuthContext";
-import { api } from "@/lib/api";
 
 export function BattleResultPanel({
     opponent,
@@ -12,75 +9,38 @@ export function BattleResultPanel({
 }: {
     opponent: Opponent;
     onNext: (winner: "me" | "opponent") => void;
-    battleResult?: {
-        winner: "me" | "opponent";
-        mySteps: number;
-        opponentSteps: number;
-    };
+    battleResult?: { winner: "me" | "opponent"; mySteps: number | string; opponentSteps: number | string };
 }) {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const resultAnim = useRef(new Animated.Value(0)).current;
     const messageAnim = useRef(new Animated.Value(0)).current;
 
-    const [winner, setWinner] = useState<"me" | "opponent" | null>(null);
-    const [mySteps, setMySteps] = useState(0);
-    const [opponentSteps, setOpponentSteps] = useState(0);
+    const hasResult = !!battleResult;
+    const myStepsNum = Number(battleResult?.mySteps ?? 0);
+    const oppStepsNum = Number(battleResult?.opponentSteps ?? 0);
+    const winner = battleResult?.winner ?? null;
 
     useEffect(() => {
-        if (battleResult) {
-            setMySteps(battleResult.mySteps);
-            setOpponentSteps(battleResult.opponentSteps);
-            setWinner(battleResult.winner);
-        }
+        fadeAnim.setValue(0);
+        resultAnim.setValue(0);
+        messageAnim.setValue(0);
 
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-        }).start();
-
-        const timeout = setTimeout(() => {
-            Animated.timing(resultAnim, {
-                toValue: 1,
-                duration: 1000,
-                useNativeDriver: true,
-            }).start(() => {
-                Animated.timing(messageAnim, {
-                    toValue: 1,
-                    duration: 600,
-                    useNativeDriver: true,
-                }).start();
+        Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start(() => {
+            Animated.timing(resultAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start(() => {
+                Animated.timing(messageAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
             });
-        }, 1000);
+        });
+    }, [battleResult, fadeAnim, resultAnim, messageAnim]);
 
-        return () => {
-            clearTimeout(timeout);
-        };
-    }, [battleResult]);
+    const resultText = !hasResult ? "..." : winner === "me" ? "YOU WIN!" : "YOU LOSE...";
+    const resultColor = !hasResult ? "#FFFFFF" : winner === "me" ? "#FFD900" : "#FF5252";
 
-    const resultText =
-        winner === "me" ? "YOU WIN!" : winner === "opponent" ? "YOU LOSE..." : "";
-    const resultColor =
-        winner === "me" ? "#FFD900" : winner === "opponent" ? "#FF5252" : "#FFFFFF";
-
-    const handleNext = () => {
-        if (winner) {
-            onNext(winner);
-        }
-    };
+    const handleNext = () => { if (winner) onNext(winner); };
 
     return (
         <View style={styles.container}>
             <Animated.View style={[styles.resultBox, { opacity: fadeAnim }]}>
-                <Animated.Text
-                    style={[
-                        styles.title,
-                        {
-                            color: resultColor,
-                            opacity: resultAnim,
-                        },
-                    ]}
-                >
+                <Animated.Text style={[styles.title, { color: resultColor, opacity: resultAnim }]}>
                     {resultText}
                 </Animated.Text>
 
@@ -88,14 +48,14 @@ export function BattleResultPanel({
                     <View style={styles.statsBox}>
                         <Text style={styles.statsLabel}>自分</Text>
                         <Text style={[styles.steps, { color: "#4CAF50" }]}>
-                            {mySteps.toLocaleString()}
+                            {hasResult ? myStepsNum.toLocaleString() : "—"}
                         </Text>
                         <Text style={styles.unit}>歩</Text>
                     </View>
                     <View style={styles.statsBox}>
                         <Text style={styles.statsLabel}>{opponent.name}</Text>
                         <Text style={[styles.steps, { color: "#FF5252" }]}>
-                            {opponentSteps.toLocaleString()}
+                            {hasResult ? oppStepsNum.toLocaleString() : "—"}
                         </Text>
                         <Text style={styles.unit}>歩</Text>
                     </View>
@@ -103,13 +63,14 @@ export function BattleResultPanel({
 
                 <Animated.View style={{ opacity: messageAnim, alignItems: "center" }}>
                     <Text style={styles.subtitle}>
-                        {winner === "me"
-                            ? "おめでとう！バトルに勝利した！"
-                            : "残念…バトルに敗北した"}
+                        {!hasResult ? "結果を集計中..." :
+                            winner === "me" ? "おめでとう！バトルに勝利した！" : "残念…バトルに敗北した"}
                     </Text>
-                    <TouchableOpacity style={styles.button} onPress={handleNext}>
-                        <Text style={styles.buttonText}>バトルを終える</Text>
-                    </TouchableOpacity>
+                    {hasResult && (
+                        <TouchableOpacity style={styles.button} onPress={handleNext}>
+                            <Text style={styles.buttonText}>バトルを終える</Text>
+                        </TouchableOpacity>
+                    )}
                 </Animated.View>
             </Animated.View>
         </View>
@@ -117,36 +78,11 @@ export function BattleResultPanel({
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#1C2024",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    resultBox: {
-        width: "90%",
-        maxWidth: 360,
-        alignItems: "center",
-    },
-    title: {
-        fontSize: 55,
-        fontWeight: "bold",
-        letterSpacing: 1.5,
-        marginBottom: 16,
-        minHeight: 56,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: "#FFFFFF",
-        marginBottom: 24,
-        minHeight: 20,
-    },
-    statsRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        width: "100%",
-        marginBottom: 24,
-    },
+    container: { flex: 1, backgroundColor: "#1C2024", justifyContent: "center", alignItems: "center" },
+    resultBox: { width: "90%", maxWidth: 360, alignItems: "center" },
+    title: { fontSize: 55, fontWeight: "bold", letterSpacing: 1.5, marginBottom: 16, minHeight: 56 },
+    subtitle: { fontSize: 14, color: "#FFFFFF", marginBottom: 24, minHeight: 20 },
+    statsRow: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginBottom: 24 },
     statsBox: {
         backgroundColor: "#2D3748",
         borderWidth: 4,
@@ -161,20 +97,9 @@ const styles = StyleSheet.create({
         shadowRadius: 0,
         elevation: 6,
     },
-    statsLabel: {
-        fontSize: 12,
-        color: "#C9D1E0",
-        marginBottom: 4,
-    },
-    steps: {
-        fontSize: 28,
-        fontWeight: "bold",
-    },
-    unit: {
-        fontSize: 12,
-        color: "#C9D1E0",
-        marginTop: 4,
-    },
+    statsLabel: { fontSize: 12, color: "#C9D1E0", marginBottom: 4 },
+    steps: { fontSize: 28, fontWeight: "bold" },
+    unit: { fontSize: 12, color: "#C9D1E0", marginTop: 4 },
     button: {
         backgroundColor: "#3E8DFF",
         paddingVertical: 14,
@@ -188,9 +113,5 @@ const styles = StyleSheet.create({
         shadowRadius: 0,
         elevation: 6,
     },
-    buttonText: {
-        color: "#FFFFFF",
-        fontSize: 16,
-        fontWeight: "bold",
-    },
+    buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
 });

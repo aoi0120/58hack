@@ -14,7 +14,6 @@ export interface BattleData {
 }
 
 export function useBattleData() {
-	const [battleData, setBattleData] = useState<BattleData | null>(null);
 	const [opponentData, setOpponentData] = useState<BattleData | null>(null);
 	const [isExchanging, setIsExchanging] = useState(false);
 	const [yesterdaySteps, setYesterdaySteps] = useState(0);
@@ -26,35 +25,21 @@ export function useBattleData() {
 	const { steps: deviceYesterdaySteps, loading: deviceYesterdayLoading } =
 		useYesterdayHealthData();
 	const hasSyncedYesterdayRef = useRef(false);
+	const serverFetchedRef = useRef(false);
 
 	// 昨日の歩数データを取得（サーバー）
 	useEffect(() => {
 		const fetchYesterdaySteps = async () => {
 			try {
-				console.log('🔍 昨日の歩数データを取得開始...', { userId: user?.id });
 				const response = await api.get('/steps/yesterday');
-				console.log('📊 昨日の歩数APIレスポンス:', {
-					status: response.status,
-					data: response.data,
-					steps: response.data.steps,
-					date: response.data.date,
-				});
-				setYesterdaySteps(response.data.steps || 0);
-				console.log('✅ 昨日の歩数データを取得完了:', response.data.steps);
-			} catch (error: any) {
-				console.error('❌ 昨日の歩数データの取得に失敗:', error);
-				if (error.response) {
-					console.error('❌ レスポンスエラー:', {
-						status: error.response.status,
-						data: error.response.data,
-					});
-				}
+				setYesterdaySteps(Number(response.data.steps) || 0);
+			} catch (error) {
+				// 取れなくても画面は端末値で進める
+			} finally {
+				serverFetchedRef.current = true;
 			}
 		};
-
-		if (user) {
-			fetchYesterdaySteps();
-		}
+		if (user) fetchYesterdaySteps();
 	}, [user]);
 
 	// 端末の昨日歩数がサーバーより大きい場合はサーバーへ同期
@@ -67,62 +52,56 @@ export function useBattleData() {
 			try {
 				const yesterday = new Date();
 				yesterday.setDate(yesterday.getDate() - 1);
-				const yyyyMmDd = yesterday.toISOString().split('T')[0];
+				const dateStr = yesterday.toISOString().split('T')[0];
 
-				console.log('🔁 昨日の歩数同期チェック:', {
-					backendYesterdaySteps: yesterdaySteps,
-					deviceYesterdaySteps,
-					date: yyyyMmDd,
-				});
+				const backend = Number(yesterdaySteps) || 0;
+				const deviceVal = Number(deviceYesterdaySteps) || 0;
 
-				if (deviceYesterdaySteps > 0 && deviceYesterdaySteps > yesterdaySteps) {
-					console.log('📤 サーバーへ昨日の歩数を同期:', {
-						steps: deviceYesterdaySteps,
-						date: yyyyMmDd,
-					});
-					const resp = await api.post('/steps/yesterday', {
-						steps: deviceYesterdaySteps,
-						date: yyyyMmDd,
-					});
-					console.log('✅ 昨日の歩数同期完了:', resp.data);
-					setYesterdaySteps(resp.data?.steps ?? deviceYesterdaySteps);
-					hasSyncedYesterdayRef.current = true;
+				if (deviceVal > 0 && deviceVal > backend) {
+					await api.post('/steps/yesterday', { steps: deviceVal, date: dateStr });
+					setYesterdaySteps(deviceVal);
 				}
-			} catch (e) {
-				console.error('❌ 昨日の歩数同期に失敗:', e);
+			} catch {
+				// 同期失敗でも端末値は使える
+			} finally {
+				hasSyncedYesterdayRef.current = true;
 			}
 		};
-
 		sync();
 	}, [user, deviceYesterdayLoading, deviceYesterdaySteps, yesterdaySteps]);
 
-	// 自分のバトルデータを準備（昨日の歩数を使用）
+	// 端末とサーバーの最大値を “見せる値” に
+	const effectiveYesterdaySteps = Math.max(
+		Number(yesterdaySteps) || 0,
+		Number(deviceYesterdaySteps) || 0
+	);
+
+	// 自分のバトルデータ（送信用）
 	const myBattleData: BattleData = {
 		userId: user?.id || '',
 		userName: user?.name || '',
-		userLevel: userLevel,
-		yesterdaySteps: yesterdaySteps,
+		userLevel,
+		yesterdaySteps: effectiveYesterdaySteps,
 		timestamp: Date.now(),
 	};
 
-	// データを送信する関数（expo-nearby-connectionsの正しいAPIを使用）
+	// データを送信
 	const sendBattleData = async (peerId: string) => {
 		if (!user) return;
-
 		try {
 			setIsExchanging(true);
-
-			// expo-nearby-connectionsを読み込み
 			// eslint-disable-next-line @typescript-eslint/no-var-requires
 			const nearby = require('expo-nearby-connections');
 			const { sendText } = nearby;
 
-			if (sendText && typeof sendText === 'function') {
-				const payload = JSON.stringify(myBattleData);
+			if (typeof sendText === 'function') {
+				const payload = JSON.stringify({
+					...myBattleData,
+					yesterdaySteps: Number(effectiveYesterdaySteps) || 0,
+					userLevel: Number(userLevel) || 0,
+					timestamp: Date.now(),
+				});
 				await sendText(peerId, payload);
-				console.log('バトルデータを送信:', myBattleData);
-			} else {
-				console.warn('sendText関数が利用できません');
 			}
 		} catch (error) {
 			console.error('バトルデータの送信に失敗:', error);
@@ -131,54 +110,61 @@ export function useBattleData() {
 		}
 	};
 
-	// データを受信する関数
+	// データを受信
 	const receiveBattleData = (peerId: string, text: string) => {
 		try {
-			const data: BattleData = JSON.parse(text);
-			setOpponentData({ ...data, peerId });
-			console.log('バトルデータを受信:', { ...data, peerId });
+			const raw = JSON.parse(text);
+			const parsed: BattleData = {
+				userId: String(raw.userId || ''),
+				userName: String(raw.userName || ''),
+				userLevel: Number(raw.userLevel) || 0,
+				yesterdaySteps: Number(raw.yesterdaySteps) || 0,
+				timestamp: Number(raw.timestamp) || Date.now(),
+				peerId,
+			};
+			setOpponentData(parsed);
 		} catch (error) {
 			console.error('バトルデータの受信に失敗:', error);
 		}
 	};
 
-	// データ交換を開始する関数
+	// データ交換を開始
 	const startDataExchange = async (peerId: string) => {
 		if (!user) return;
-
 		try {
 			setIsExchanging(true);
 
-			// データを送信
-			await sendBattleData(peerId);
-
-			// データを受信するリスナーを設定
-			// eslint-disable-next-line @typescript-eslint/no-var-requires
+			// 先に受信リスナー
 			const nearby = require('expo-nearby-connections');
 			const { onTextReceived } = nearby;
 
+			let handled = false;
+			let unsubscribe: (() => void) | undefined;
 			if (onTextReceived) {
-				const unsubscribe = onTextReceived(({ peerId: senderId, text }: any) => {
+				unsubscribe = onTextReceived(({ peerId: senderId, text }: any) => {
+					if (handled) return;
 					if (senderId === peerId) {
+						handled = true;
 						receiveBattleData(peerId, text);
 					}
 				});
-
-				// クリーンアップ関数を返す
-				return () => {
-					unsubscribe?.();
-					setIsExchanging(false);
-				};
 			}
+
+			console.log('📤 sending battle payload to:', peerId);
+			// すぐ送る（ensureExchange 側で onConnected 後にしか来ない）
+			await sendBattleData(peerId);
+
+			return () => {
+				unsubscribe?.();
+				setIsExchanging(false);
+			};
 		} catch (error) {
 			console.error('データ交換の開始に失敗:', error);
 			setIsExchanging(false);
 		}
 	};
 
-	// データをリセットする関数
 	const resetBattleData = () => {
-		setBattleData(null);
 		setOpponentData(null);
 		setIsExchanging(false);
 	};
@@ -188,6 +174,7 @@ export function useBattleData() {
 		opponentData,
 		isExchanging,
 		yesterdaySteps,
+		effectiveYesterdaySteps,
 		sendBattleData,
 		receiveBattleData,
 		startDataExchange,
