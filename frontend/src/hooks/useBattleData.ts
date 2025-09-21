@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTotalStep } from '../features/home/context/TotalStep';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { api } from '@/lib/api';
+import { useYesterdayHealthData } from './useHealthData';
 
 export interface BattleData {
 	userId: string;
@@ -21,7 +22,12 @@ export function useBattleData() {
 	const { userLevel } = useTotalStep();
 	const { user } = useAuth();
 
-	// 昨日の歩数データを取得
+	// 端末の「昨日の歩数」
+	const { steps: deviceYesterdaySteps, loading: deviceYesterdayLoading } =
+		useYesterdayHealthData();
+	const hasSyncedYesterdayRef = useRef(false);
+
+	// 昨日の歩数データを取得（サーバー）
 	useEffect(() => {
 		const fetchYesterdaySteps = async () => {
 			try {
@@ -35,7 +41,7 @@ export function useBattleData() {
 				});
 				setYesterdaySteps(response.data.steps || 0);
 				console.log('✅ 昨日の歩数データを取得完了:', response.data.steps);
-			} catch (error) {
+			} catch (error: any) {
 				console.error('❌ 昨日の歩数データの取得に失敗:', error);
 				if (error.response) {
 					console.error('❌ レスポンスエラー:', {
@@ -50,6 +56,45 @@ export function useBattleData() {
 			fetchYesterdaySteps();
 		}
 	}, [user]);
+
+	// 端末の昨日歩数がサーバーより大きい場合はサーバーへ同期
+	useEffect(() => {
+		if (!user) return;
+		if (deviceYesterdayLoading) return;
+		if (hasSyncedYesterdayRef.current) return;
+
+		const sync = async () => {
+			try {
+				const yesterday = new Date();
+				yesterday.setDate(yesterday.getDate() - 1);
+				const yyyyMmDd = yesterday.toISOString().split('T')[0];
+
+				console.log('🔁 昨日の歩数同期チェック:', {
+					backendYesterdaySteps: yesterdaySteps,
+					deviceYesterdaySteps,
+					date: yyyyMmDd,
+				});
+
+				if (deviceYesterdaySteps > 0 && deviceYesterdaySteps > yesterdaySteps) {
+					console.log('📤 サーバーへ昨日の歩数を同期:', {
+						steps: deviceYesterdaySteps,
+						date: yyyyMmDd,
+					});
+					const resp = await api.post('/steps/yesterday', {
+						steps: deviceYesterdaySteps,
+						date: yyyyMmDd,
+					});
+					console.log('✅ 昨日の歩数同期完了:', resp.data);
+					setYesterdaySteps(resp.data?.steps ?? deviceYesterdaySteps);
+					hasSyncedYesterdayRef.current = true;
+				}
+			} catch (e) {
+				console.error('❌ 昨日の歩数同期に失敗:', e);
+			}
+		};
+
+		sync();
+	}, [user, deviceYesterdayLoading, deviceYesterdaySteps, yesterdaySteps]);
 
 	// 自分のバトルデータを準備（昨日の歩数を使用）
 	const myBattleData: BattleData = {
