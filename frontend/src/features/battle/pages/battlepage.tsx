@@ -1,15 +1,16 @@
-import { ScrollView, View, Text, StyleSheet, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
-import { BattleCard } from "../components/battlecord";
-import { StepsPanel } from "../components/stepspanel";
-import { BattleResultPanel } from "../components/BattleResultPanel";
-import { LevelUpPanel } from "../components/LevelUpPanel";
-import type { Opponent } from "../types";
-import { useNearbyOpponents } from "@/src/hooks/useNearbyOpponents";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { ScrollView, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState, useEffect } from 'react';
+import { BattleCard } from '../components/battlecord';
+import { StepsPanel } from '../components/stepspanel';
+import { BattleResultPanel } from '../components/BattleResultPanel';
+import LevelUpCelebration from '../../home/components/Effect';
+import type { Opponent } from '../types';
+import { useNearbyOpponents } from '@/src/hooks/useNearbyOpponents';
+import { useAuth } from '@/src/features/auth/context/AuthContext';
+import { useTotalStep } from '../../home/context/TotalStep';
 
-const BG = "#1F242B";
+const BG = '#1F242B';
 
 const Empty = ({ error, scanning }: { error: string | null; scanning: boolean }) => (
     <View style={styles.emptyWrap}>
@@ -30,38 +31,32 @@ const Empty = ({ error, scanning }: { error: string | null; scanning: boolean })
 );
 
 export function BattlePage() {
-    const { opponents, scanning, error, resetBattleData, battleResult, setBattleResult } = useNearbyOpponents();
+    const { opponents, scanning, error, resetBattleData, battleResult, setBattleResult } =
+        useNearbyOpponents();
     const { user, loading } = useAuth();
     const isAuthenticated = !!user;
 
-    const [step, setStep] = useState<"list" | "result" | "levelup">("list");
+    const { showLevelUp, setShowLevelUp } = useTotalStep();
+
+    // 押した相手。これがある間は結果画面を表示（battleResult は後で埋まる）
     const [selectedOpponent, setSelectedOpponent] = useState<Opponent | null>(null);
 
-    const onBattle = (op: Opponent) => {
-        setSelectedOpponent(op);
-        setStep("result");
-    };
-
-    const handleResultNext = (winner: "me" | "opponent") => {
-        setStep("list");
-        // バトルデータをリセット
+    const handleResultNext = () => {
         resetBattleData();
         setBattleResult(null);
         setSelectedOpponent(null);
     };
 
-    // バトル結果が発生したら結果画面を表示
+    // サーバ応答/受信で battleResult が入ったら、selectedOpponent が無ければ補完
     useEffect(() => {
-        if (battleResult) {
+        if (battleResult && !selectedOpponent) {
             setSelectedOpponent(battleResult.opponent);
-            setStep("result");
         }
-    }, [battleResult]);
-
+    }, [battleResult, selectedOpponent]);
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+            <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
                 <ScrollView contentContainerStyle={styles.container}>
                     <View style={styles.emptyWrap}>
                         <ActivityIndicator />
@@ -74,7 +69,7 @@ export function BattlePage() {
 
     if (!isAuthenticated) {
         return (
-            <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+            <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
                 <ScrollView contentContainerStyle={styles.container}>
                     <View style={styles.emptyWrap}>
                         <Text style={styles.errorText}>ログインが必要です</Text>
@@ -86,8 +81,14 @@ export function BattlePage() {
     }
 
     return (
-        <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-            {step === "list" && (
+        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+            {selectedOpponent ? (
+                <BattleResultPanel
+                    opponent={selectedOpponent}
+                    onNext={handleResultNext}
+                    battleResult={battleResult || undefined}
+                />
+            ) : (
                 <ScrollView contentContainerStyle={styles.container}>
                     <StepsPanel />
                     <Text style={styles.sectionTitle}>Bluetoothですれ違った相手</Text>
@@ -96,7 +97,15 @@ export function BattlePage() {
                         <Empty error={error} scanning={scanning} />
                     ) : (
                         opponents.map((op: Opponent, index: number) => (
-                            <BattleCard key={`${op.id}-${index}`} opponent={op} onPress={onBattle} />
+                            <BattleCard
+                                key={`${op.id}-${index}`}
+                                opponent={op}
+                                onPress={(o) => {
+                                    console.log('[UI] press battle', o.id);
+                                    // 接続・交換は自動。ここでは選択のみ
+                                    setSelectedOpponent(o);
+                                }}
+                            />
                         ))
                     )}
 
@@ -104,21 +113,7 @@ export function BattlePage() {
                 </ScrollView>
             )}
 
-            {step === "result" && selectedOpponent && (
-                <BattleResultPanel
-                    opponent={selectedOpponent}
-                    onNext={handleResultNext}
-                    battleResult={battleResult ? {
-                        winner: battleResult.winner,
-                        mySteps: battleResult.mySteps,
-                        opponentSteps: battleResult.opponentSteps
-                    } : undefined}
-                />
-            )}
-
-            {step === "levelup" && (
-                <LevelUpPanel onClose={() => setStep("list")} />
-            )}
+            {showLevelUp && <LevelUpCelebration onClose={() => setShowLevelUp(false)} />}
         </SafeAreaView>
     );
 }
@@ -127,9 +122,9 @@ const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: BG },
     container: { padding: 16 },
     sectionTitle: {
-        color: "#E6EDF7",
+        color: '#E6EDF7',
         fontSize: 18,
-        textAlign: "center",
+        textAlign: 'center',
         marginVertical: 8,
     },
     emptyWrap: {
@@ -137,22 +132,22 @@ const styles = StyleSheet.create({
         marginTop: 14,
         borderRadius: 16,
         borderWidth: 4,
-        borderColor: "#000",
-        backgroundColor: "#2B3545",
-        alignItems: "center",
+        borderColor: '#000',
+        backgroundColor: '#2B3545',
+        alignItems: 'center',
         gap: 8,
     },
-    emptyText: { color: "#AAB7C8", fontSize: 16 },
-    emptySubText: { color: "#7A8A9A", fontSize: 14 },
+    emptyText: { color: '#AAB7C8', fontSize: 16 },
+    emptySubText: { color: '#7A8A9A', fontSize: 14 },
     errorText: {
-        color: "#FF6B6B",
+        color: '#FF6B6B',
         fontSize: 16,
-        textAlign: "center",
+        textAlign: 'center',
         marginBottom: 8,
     },
     retryText: {
-        color: "#AAB7C8",
+        color: '#AAB7C8',
         fontSize: 14,
-        textAlign: "center",
+        textAlign: 'center',
     },
 });

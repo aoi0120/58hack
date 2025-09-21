@@ -1,9 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import type { Opponent } from "../types";
-import { useTotalStep } from "../../home/context/TotalStep";
-import { useAuth } from "../../auth/context/AuthContext";
-import { api } from "@/lib/api";
 
 export function BattleResultPanel({
     opponent,
