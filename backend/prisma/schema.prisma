@@ -85,6 +85,6 @@ model Encounters {
   recorderUser        User     @relation("EncountersRecords", fields: [recorderUserId], references: [id])
   recordedUserId      Int
   recordedUser        User     @relation("RecordedEncounters", fields: [recordedUserId], references: [id])
-  done_battle Boolean
+  done_battle Boolean          @default(false)
   createdAt   DateTime @default(now())
 }
