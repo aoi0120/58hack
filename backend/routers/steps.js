@@ -11,37 +11,68 @@ router.post('/yesterday', authMiddleware, async (req, res) => {
 	// jwtからuserIdを取得
 	const userId = req.userId;
 	const { steps, date } = req.body;
-	const stepsNum = Number(steps);
-	const dateObj = new Date(date);
-	const isInvalidDate = Number.isNaN(dateObj.getTime());
 
-	if (!userId || !stepsNum || !dateObj || isInvalidDate) {
+	const toSafeInt = (v) => {
+		const n = Number(v);
+		if (!Number.isFinite(n)) return null;
+		return Math.trunc(n);
+	};
+
+	const stepsNum = toSafeInt(steps);
+	if (!userId || stepsNum === null || stepsNum < 0 || !date) {
 		return res.status(400).json({ message: '不正な入力です' });
 	}
 
+	// 入力された日付の0:00〜24:00の範囲を作成
+	const start = new Date(date);
+	if (Number.isNaN(start.getTime())) {
+		return res.status(400).json({ message: '日付の形式が不正です' });
+	}
+	start.setHours(0, 0, 0, 0);
+	const end = new Date(start);
+	end.setDate(end.getDate() + 1);
+
 	try {
-		// 既に同じ日付の歩数データがあるかを判定
+		console.log('📝 歩数保存リクエスト:', {
+			userId,
+			steps: stepsNum,
+			start: start.toISOString(),
+			end: end.toISOString(),
+		});
+
+		// 既に同じ日付の歩数データがあるか（日付範囲で）
 		const existing = await prisma.stepRecord.findFirst({
-			where: { userId, date: dateObj },
+			where: {
+				userId,
+				date: { gte: start, lt: end },
+			},
 		});
 
 		let result;
 		if (existing) {
-			// 歩数を上書き
 			result = await prisma.stepRecord.update({
 				where: { id: existing.id },
 				data: { steps: stepsNum },
 			});
+			console.log('✏️ 既存レコード更新:', { id: existing.id, steps: stepsNum });
 		} else {
-			// 歩数を新規作成
+			// 正規化した日付(start)で作成
 			result = await prisma.stepRecord.create({
-				data: { userId, date: dateObj, steps: stepsNum },
+				data: { userId, date: start, steps: stepsNum },
 			});
+			console.log('✅ 新規レコード作成:', { id: result.id, steps: stepsNum });
 		}
 
 		return res.status(200).json(result);
 	} catch (err) {
-		console.error(err);
+		// 同時書き込みでユニーク制約に当たった場合は再取得して返す
+		if (err && err.code === 'P2002') {
+			const existing = await prisma.stepRecord.findFirst({
+				where: { userId, date: { gte: start, lt: end } },
+			});
+			if (existing) return res.status(200).json(existing);
+		}
+		console.error('❌ 歩数保存エラー:', err);
 		res.status(500).json({ message: 'サーバーエラーです' });
 	}
 });
