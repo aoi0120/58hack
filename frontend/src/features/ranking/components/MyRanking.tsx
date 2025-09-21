@@ -1,35 +1,91 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useMemo } from 'react';
-
+import {
+  useWeeklyHealthData,
+  useYesterdayHealthData,
+} from '../../../hooks/useHealthData';
+import {
+  useWeeklyWinRateData,
+  useYesterdayWinRateData,
+} from '../../../hooks/useWinRateData'; 
 type Props = {
   type: 'steps' | 'winrate';
   period: 'yesterday' | 'week';
 };
 
 export default function MyRankingFooter({ type, period }: Props) {
+  const { steps: weeklySteps, loading: loadingWeekly } = useWeeklyHealthData();
+  const { steps: yesterdaySteps, loading: loadingYesterday } = useYesterdayHealthData();
+  const { winRate: weeklyWinRate, loading: loadingWeeklyWinRate } = useWeeklyWinRateData();
+  const { winRate: yesterdayWinRate, loading: loadingYesterdayWinRate } = useYesterdayWinRateData();
+
   const myRanking = useMemo(() => {
     if (type === 'steps' && period === 'yesterday') {
-      return { rank: 128, name: 'あなた', steps: 7200 };
+      return {
+        rank: 128,
+        name: 'あなた',
+        steps: loadingYesterday ? undefined : yesterdaySteps,
+      };
     }
     if (type === 'steps' && period === 'week') {
-      return { rank: 11, name: 'あなた', steps: 39000 };
+      return {
+        rank: 11,
+        name: 'あなた',
+        steps: loadingWeekly ? undefined : weeklySteps,
+      };
     }
     if (type === 'winrate' && period === 'yesterday') {
-      return { rank: 128, name: 'あなた', winRate: 42 };
+      return {
+        rank: 128,
+        name: 'あなた',
+        winRate: loadingYesterdayWinRate ? undefined : yesterdayWinRate,
+      };
     }
     if (type === 'winrate' && period === 'week') {
-      return { rank: 12, name: 'あなた', winRate: 61 };
+      return {
+        rank: 12,
+        name: 'あなた',
+        winRate: loadingWeeklyWinRate ? undefined : weeklyWinRate,
+      };
     }
     return null;
-  }, [type, period]);
+  }, [
+    type,
+    period,
+    weeklySteps,
+    yesterdaySteps,
+    weeklyWinRate,
+    yesterdayWinRate,
+    loadingWeekly,
+    loadingYesterday,
+    loadingWeeklyWinRate,
+    loadingYesterdayWinRate,
+  ]);
 
   if (!myRanking) return null;
+
+  const isLoading =
+    type === 'steps'
+      ? period === 'yesterday'
+        ? loadingYesterday
+        : loadingWeekly
+      : period === 'yesterday'
+        ? loadingYesterdayWinRate
+        : loadingWeeklyWinRate;
 
   const rankText = `${myRanking.rank}`;
   const valueText =
     type === 'steps'
-      ? `${myRanking.steps ?? '-'}歩`
-      : `${myRanking.winRate ?? '-'}%`;
+      ? isLoading
+        ? '読み込み中...'
+        : myRanking.steps != null
+          ? `${myRanking.steps.toLocaleString()}歩`
+          : '-歩'
+      : isLoading
+        ? '読み込み中...'
+        : myRanking.winRate != null
+          ? `${myRanking.winRate}%`
+          : '-%';
 
   return (
     <View style={styles.footer}>

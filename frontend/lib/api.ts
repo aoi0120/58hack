@@ -17,6 +17,62 @@ export const api = axios.create({
 	},
 });
 
+export const fetchStepRanking = async (daysCount: number) => {
+  const today = new Date();
+  const dateString = today.toISOString().split('T')[0];
+
+  try {
+    const response = await api.post('/steps', {
+      date: dateString,
+      daysCount,
+    });
+    return response.data; // [{ rank, steps, user }]
+  } catch (error) {
+    console.error('歩数ランキング取得エラー:', error);
+    throw error;
+  }
+};
+
+export const fetchWinRateRanking = async (daysCount: number) => {
+  const today = new Date();
+  const dateString = today.toISOString().split('T')[0];
+
+  try {
+    const response = await api.post('/winrate', {
+      date: dateString,
+      daysCount,
+    });
+    return response.data; // [{ rank, winRate, user }]
+  } catch (error) {
+    console.error('勝率ランキング取得エラー:', error);
+    throw error;
+  }
+};
+
+export const fetchTotalSteps = async (): Promise<number> => {
+  try {
+    const response = await api.get('/steps/total_steps');
+    return response.data.totalSteps ?? 0;
+  } catch (error) {
+    console.error('総歩数取得エラー:', error);
+    throw error;
+  }
+};
+
+export const fetchTotalWins = async (): Promise<number> => {
+  try {
+    const userId = await SecureStore.getItemAsync('userId');
+    const response = await api.get('/battle/total_wins', {
+      params: { userId },
+    });
+    return response.data.totalWins ?? 0;
+  } catch (error) {
+    console.error('総勝利数取得エラー:', error);
+    throw error;
+  }
+};
+
+
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 	const token = await SecureStore.getItemAsync('token');
 	if (token) {
